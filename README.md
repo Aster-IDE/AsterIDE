@@ -13,7 +13,9 @@ I made AsterIDE as a fun side Project with one thing in mind, to make a silly Te
 >[!NOTE]
 > AsterIDE will **NOT** look like the image above, it simply a meme / joke with some friends, it is not what the IDE will look like, but it will be based on it.
 ---
+## Screenshots
 
+![screenshot-1.png](./assets/screenshots/screenshot-1.png)
 
 ---
 Written in **Rust** with ❤️ by **Playfairs**.
