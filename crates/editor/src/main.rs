@@ -1298,6 +1298,67 @@ fn is_system_clear() -> bool {
     }
 }
 
+
+// The three functions below are used to check the system's appearance settings.
+// In macOS, these functions are implemented to check the system's appearance settings.
+// However, on other platforms, these functions are not implemented and simply return false.
+// This is because macOS is the only platform that currently supports dark mode dynamically.
+// The functions are implemented as compile-time conditionals, using the `cfg` attribute.
+// This means that the code for these functions will only be compiled on macOS.
+#[cfg(target_os = "macos")]
+fn is_system_dark_mode() -> bool {
+    // Checks if the System is using the 'Dark' Appearance
+    use std::process::Command;
+    
+    match Command::new("defaults")
+        .args(&["read", "-g", "AppleInterfaceStyle"])
+        .output() {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            stdout.trim() == "Dark"
+        }
+        Err(_) => false,
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn is_system_tinted() -> bool {
+    // Checks if the System is using the 'Tinted' Appearance
+    // (Which is where the macOS only stuff starts coming in, follow up by clear)
+    use std::process::Command;
+    
+    match Command::new("defaults")
+        .args(&["read", "-g", "AppleAccentColor"])
+        .output() {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            !stdout.trim().is_empty() && stdout.trim() != "null"
+        }
+        Err(_) => false,
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn is_system_clear() -> bool {
+    // Checks for reduced transparency / clear appearance
+    // obvious followup from the above function
+    use std::process::Command;
+    
+    match Command::new("defaults")
+        .args(&["read", "com.apple.universalaccess", "reduceTransparency"])
+        .output() {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            stdout.trim() == "1"
+        }
+        Err(_) => false,
+    }
+}
+
+// On non-macOS platforms, these functions are defined but do not perform any logic.
+// honestly it'd be funny if I made these do something, specifically with a 
+// custom wayland compositor (the one I'm making in rust.
+// anyways, for now it just returns false because that makes sense.
 #[cfg(not(target_os = "macos"))]
 fn is_system_dark_mode() -> bool {
     false
