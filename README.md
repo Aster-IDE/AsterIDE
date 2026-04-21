@@ -15,7 +15,7 @@ I made AsterIDE as a fun side Project with one thing in mind, to make a silly Te
 ---
 ## Screenshots
 
-![editor-1.png](./assets/screenshots/editor-1.png)
+![editor.png](./assets/screenshots/editor.png)
 ![home-1.png](./assets/screenshots/home-1.png)
 ![search-1.png](./assets/screenshots/search-1.png)
 ![settings-1.png](./assets/screenshots/settings-1.png)
