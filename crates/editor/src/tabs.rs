@@ -25,13 +25,15 @@ pub struct TabManager {
 
 impl TabManager {
     pub fn new() -> Self {
-        let mut manager = Self {
+        Self {
             tabs: Vec::new(),
             active_tab: 0,
             next_id: 1,
-        };
-        manager.new_tab();
-        manager
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.tabs.is_empty()
     }
 
     pub fn new_tab(&mut self) {
@@ -100,6 +102,23 @@ impl TabManager {
     }
 
     pub fn open_file(&mut self, path: PathBuf, content: String) {
+        self.open_file_internal(path, content, true);
+    }
+
+    pub fn open_file_in_background(&mut self, path: PathBuf, content: String) {
+        self.open_file_internal(path, content, false);
+    }
+
+    fn open_file_internal(&mut self, path: PathBuf, content: String, switch_to_tab: bool) {
+        for (i, tab) in self.tabs.iter().enumerate() {
+            if tab.tab_type == TabType::File && tab.path.as_ref() == Some(&path) {
+                if switch_to_tab {
+                    self.active_tab = i;
+                }
+                return;
+            }
+        }
+
         let id = self.next_id;
         self.next_id += 1;
         
@@ -120,13 +139,15 @@ impl TabManager {
         };
         
         self.tabs.push(tab);
-        self.active_tab = self.tabs.len() - 1;
+        if switch_to_tab {
+            self.active_tab = self.tabs.len() - 1;
+        }
     }
 
     pub fn close_tab(&mut self, index: usize) {
-        if self.tabs.len() > 1 && index < self.tabs.len() {
+        if index < self.tabs.len() {
             self.tabs.remove(index);
-            if self.active_tab >= self.tabs.len() {
+            if !self.tabs.is_empty() && self.active_tab >= self.tabs.len() {
                 self.active_tab = self.tabs.len() - 1;
             }
         }
@@ -143,11 +164,19 @@ impl TabManager {
     }
 
     pub fn active_tab(&self) -> Option<&Tab> {
-        self.tabs.get(self.active_tab)
+        if self.tabs.is_empty() {
+            None
+        } else {
+            self.tabs.get(self.active_tab)
+        }
     }
 
     pub fn active_tab_mut(&mut self) -> Option<&mut Tab> {
-        self.tabs.get_mut(self.active_tab)
+        if self.tabs.is_empty() {
+            None
+        } else {
+            self.tabs.get_mut(self.active_tab)
+        }
     }
 
     pub fn current_editor(&self) -> Option<&Editor> {
