@@ -261,6 +261,7 @@ dependencies = [
  "grep",
  "grep-regex",
  "grep-searcher",
+ "image",
  "regex",
  "rfd",
  "serde",

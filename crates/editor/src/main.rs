@@ -1179,10 +1179,13 @@ impl eframe::App for AsterIDE {
 }
 
 fn main() -> eframe::Result<()> {
+    let icon = load_icon();
+    
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1200.0, 800.0])
-            .with_min_inner_size([800.0, 600.0]),
+            .with_min_inner_size([800.0, 600.0])
+            .with_icon(icon),
         ..Default::default()
     };
 
@@ -1191,4 +1194,121 @@ fn main() -> eframe::Result<()> {
         options,
         Box::new(|_cc| Ok(Box::new(AsterIDE::default()))),
     )
+}
+
+fn load_icon() -> egui::IconData {
+    // All these appIcons were made using Apples Icon Composer.
+    static ICON_DARK: &[u8] = include_bytes!("../../../assets/appIcon/asteride-macOS-Dark-1024x1024@1x.png");
+    static ICON_DEFAULT: &[u8] = include_bytes!("../../../assets/appIcon/asteride-macOS-Default-1024x1024@1x.png");
+    static ICON_TINTED_DARK: &[u8] = include_bytes!("../../../assets/appIcon/asteride-macOS-TintedDark-1024x1024@1x.png");
+    static ICON_TINTED_LIGHT: &[u8] = include_bytes!("../../../assets/appIcon/asteride-macOS-TintedLight-1024x1024@1x.png");
+    static ICON_CLEAR_DARK: &[u8] = include_bytes!("../../../assets/appIcon/asteride-macOS-ClearDark-1024x1024@1x.png");
+    static ICON_CLEAR_LIGHT: &[u8] = include_bytes!("../../../assets/appIcon/asteride-macOS-ClearLight-1024x1024@1x.png");
+    
+    // System Appearance detection needs to be worked on because it does detect light and dark correctly, however...
+    let is_dark = is_system_dark_mode();
+    let is_tinted = is_system_tinted();
+    let is_clear = is_system_clear();
+    
+    // The same can't be said for this, this doesn't seem to detect whether icons are Clear, or tinted.
+    let icon_bytes = if is_tinted {
+        if is_dark { ICON_TINTED_DARK } else { ICON_TINTED_LIGHT }
+    } else if is_clear {
+        if is_dark { ICON_CLEAR_DARK } else { ICON_CLEAR_LIGHT }
+    } else {
+        if is_dark { ICON_DARK } else { ICON_DEFAULT }
+    };
+
+    // This means that the icon doesn't currently change properly.
+    // 
+    // TODO: Fix the System Appearance Detection for macOS, might make a seperate folder for this, probably in
+    // Objective-C or Swift, if Swift works well will this project anyways. We will have to see.
+    //  ----------------------------------------------------------------------------------------------------- //
+    // Default Icons:
+    //  assets/appIcon/asteride-macOS-Default-1024x1024@1x.png: Light Mode enabled with the Default Icons.
+    //  assets/appIcon/asteride-macOS-Dark-1024x1024@1x.png: Dark Mode enabled with the Default Icons.
+    // Clear Icons:
+    //  assets/appIcon/asteride-macOS-ClearLight-1024x1024@1x.png: Light Mode enabled with Clear Icons.
+    //  assets/appIcon/asteride-macOS-ClearDark-1024x1024@1x.png: Dark Mode enabled with Clear Icons.
+    // Tinted Icons:
+    //  assets/appIcon/asteride-macOS-TintedLight-1024x1024@1x.png: Light Mode enabled with the Tinted Icons.
+    //  assets/appIcon/asteride-macOS-TintedDark-1024x1024@1x.png: Dark Mode enabled with the Tinted Icons.
+    
+    let image = image::load_from_memory(icon_bytes)
+        .expect("Failed to load icon")
+        .into_rgba8();
+    let (width, height) = image.dimensions();
+    
+    egui::IconData {
+        rgba: image.into_raw(),
+        width,
+        height,
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn is_system_dark_mode() -> bool {
+    use std::process::Command;
+    
+    match Command::new("defaults")
+        .args(&["read", "-g", "AppleInterfaceStyle"])
+        .output() {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            stdout.trim() == "Dark"
+        }
+        Err(_) => false,
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn is_system_tinted() -> bool {
+    // Checks if the System is using the 'Tinted' Appearance, currently doesn't work
+    // Not sure if I need to do this in ObjC or Swift, or if I can do it in rust.
+    // This should check for accent colors as well.. but the icon isn't dynamic to do that.
+    use std::process::Command;
+    
+    match Command::new("defaults")
+        .args(&["read", "-g", "AppleAccentColor"])
+        .output() {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            // If a specific accent color is set, just consider it 'tinted', if it was Swift, I'm sure this would be easier
+            !stdout.trim().is_empty() && stdout.trim() != "null"
+        }
+        Err(_) => false,
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn is_system_clear() -> bool {
+    // Check for reduced transparency / clear appearance.
+    // This actually should work, I'll probably rewrite this logic either way though
+    // for when I fix the actual system and make it work properly.
+    use std::process::Command;
+    
+    match Command::new("defaults")
+        .args(&["read", "com.apple.universalaccess", "reduceTransparency"])
+        .output() {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            stdout.trim() == "1"
+        }
+        Err(_) => false,
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn is_system_dark_mode() -> bool {
+    false
+}
+
+#[cfg(not(target_os = "macos"))]
+fn is_system_tinted() -> bool {
+    false
+}
+
+#[cfg(not(target_os = "macos"))]
+fn is_system_clear() -> bool {
+    false
 }
