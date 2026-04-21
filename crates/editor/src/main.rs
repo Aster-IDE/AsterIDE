@@ -961,7 +961,18 @@ impl AsterIDE {
                 let available_height = ui.available_height();
                 let available_width = ui.available_width();
 
-                let line_height = font_size * 1.2;
+                // This shit is fucking aids, I genuinely don't get how VSC manages this shit
+                // at this point who needs numbers right?? 😂✌️
+                let font_id = egui::FontId::monospace(font_size);
+                let line_height = {
+                    let galley = ui.painter().layout(
+                        "M".to_string(),
+                        font_id.clone(),
+                        CherryBlossomTheme::TEXT_PRIMARY,
+                        f32::INFINITY,
+                    );
+                    galley.size().y + ui.spacing().item_spacing.y
+                };
                 let content_height = (line_count as f32 * line_height).max(available_height);
                 let editor_width = available_width - line_number_width;
 
@@ -969,6 +980,7 @@ impl AsterIDE {
                     .id_salt("editor_scroll")
                     .auto_shrink([false; 2])
                     .show(ui, |ui| {
+                        // Create a Grid, which should IN THEORY work (it doesn't)
                         ui.set_height(content_height);
                         ui.set_width(available_width);
 
@@ -976,27 +988,22 @@ impl AsterIDE {
                             ui.set_height(content_height);
 
                             if show_line_numbers {
-                                ui.vertical(|ui| {
-                                    ui.set_width(line_number_width);
-                                    ui.set_height(content_height);
-
-                                    for i in 1..=line_count.max(1) {
-                                        ui.with_layout(
-                                            egui::Layout::right_to_left(egui::Align::Min),
-                                            |ui| {
-                                                ui.set_height(line_height);
-                                                ui.vertical_centered(|ui| {
-                                                    ui.label(
-                                                        egui::RichText::new(format!("{}", i))
-                                                            .monospace()
-                                                            .color(CherryBlossomTheme::TEXT_MUTED)
-                                                            .size(font_size),
-                                                    );
-                                                });
-                                            },
-                                        );
-                                    }
-                                });
+                                let number_rect = ui.allocate_exact_size(
+                                    egui::vec2(line_number_width, content_height),
+                                    egui::Sense::hover(),
+                                ).0;
+                                
+                                for i in 0..line_count.max(1) {
+                                    let y_pos = number_rect.top() + (i as f32 * line_height) + (line_height * 0.5);
+                                    let line_number = i + 1;
+                                    ui.painter().text(
+                                        egui::pos2(number_rect.right() - 8.0, y_pos),
+                                        egui::Align2::RIGHT_CENTER,
+                                        format!("{}", line_number),
+                                        font_id.clone(),
+                                        CherryBlossomTheme::TEXT_MUTED,
+                                    );
+                                }
                             }
 
                             ui.vertical(|ui| {
@@ -1006,7 +1013,7 @@ impl AsterIDE {
                                 let editor_id = ui.id().with("editor_text");
                                 let text_edit = egui::TextEdit::multiline(&mut new_text)
                                     .id(editor_id)
-                                    .font(egui::FontId::monospace(font_size))
+                                    .font(font_id.clone())
                                     .text_color(CherryBlossomTheme::TEXT_PRIMARY)
                                     .desired_width(editor_width);
 
