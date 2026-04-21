@@ -1,0 +1,506 @@
+use serde::{Serialize, Deserialize};
+
+#[derive(Clone, Debug, PartialEq, Copy, Serialize, Deserialize)]
+pub enum SettingsCategory {
+    Editor,
+    Workbench,
+    Search,
+}
+
+impl Default for SettingsCategory {
+    fn default() -> Self {
+        SettingsCategory::Editor
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Settings {
+    pub show_line_numbers: bool,
+    pub word_wrap: bool,
+    pub font_size: f32,
+    pub tab_size: usize,
+    pub use_spaces: bool,
+    pub show_whitespace: bool,
+    pub vim_mode: bool,
+    pub auto_save: bool,
+    pub auto_save_interval: u64,
+    pub sidebar_visible: bool,
+    pub status_bar_visible: bool,
+    pub search_ignore_dirs_enabled: bool,
+    pub search_ignored_dirs: String,
+    pub search_min_chars: usize,
+    #[serde(skip)]
+    pub selected_category: SettingsCategory,
+    #[serde(skip)]
+    pub search_query: String,
+    #[serde(skip)]
+    pub edit_as_json_clicked: bool,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            show_line_numbers: true,
+            word_wrap: true,
+            font_size: 14.0,
+            tab_size: 4,
+            use_spaces: true,
+            show_whitespace: false,
+            vim_mode: false,
+            auto_save: false,
+            auto_save_interval: 30,
+            sidebar_visible: true,
+            status_bar_visible: true,
+            search_ignore_dirs_enabled: true,
+            search_ignored_dirs: ".git, node_modules, venv, .venv, target, dist, build, .next, .cache, __pycache__, .idea, .vscode".to_string(),
+            search_min_chars: 2,
+            selected_category: SettingsCategory::default(),
+            search_query: String::new(),
+            edit_as_json_clicked: false,
+        }
+    }
+}
+
+impl SettingsCategory {
+    fn name(&self) -> &'static str {
+        match self {
+            SettingsCategory::Editor => "Editor",
+            SettingsCategory::Workbench => "Workbench",
+            SettingsCategory::Search => "Search",
+        }
+    }
+
+    fn icon(&self) -> &'static str {
+        match self {
+            SettingsCategory::Editor => "📝",
+            SettingsCategory::Workbench => "🖥️",
+            SettingsCategory::Search => "🔍",
+        }
+    }
+}
+
+fn config_dir() -> Option<std::path::PathBuf> {
+    dirs::config_dir().map(|d| d.join("asteride"))
+}
+
+fn settings_file_path() -> Option<std::path::PathBuf> {
+    config_dir().map(|d| d.join("settings.json"))
+}
+
+pub fn get_settings_file_path() -> Option<std::path::PathBuf> {
+    settings_file_path()
+}
+
+impl Settings {
+    pub fn load() -> Self {
+        if let Some(path) = settings_file_path() {
+            if let Ok(content) = std::fs::read_to_string(&path) {
+                if let Ok(settings) = serde_json::from_str::<Settings>(&content) {
+                    return settings;
+                }
+            }
+        }
+        Self::default()
+    }
+
+    pub fn save(&self) {
+        if let Some(path) = settings_file_path() {
+            if let Some(dir) = path.parent() {
+                let _ = std::fs::create_dir_all(dir);
+            }
+            if let Ok(json) = serde_json::to_string_pretty(self) {
+                let _ = std::fs::write(&path, json);
+            }
+        }
+    }
+}
+
+impl Settings {
+    pub fn show_panel(&mut self, ctx: &egui::Context) {
+        egui::Window::new("Settings")
+            .collapsible(false)
+            .resizable(true)
+            .default_size([600.0, 500.0])
+            .min_size([400.0, 300.0])
+            .show(ctx, |ui| {
+                self.show_content(ui);
+            });
+    }
+
+    pub fn show_content(&mut self, ui: &mut egui::Ui) {
+        use crate::theme::CherryBlossomTheme;
+
+        let available_height = ui.available_height();
+
+        ui.horizontal(|ui| {
+            ui.add_space(8.0);
+            ui.set_width(ui.available_width());
+
+            ui.label(
+                egui::RichText::new(self.selected_category.name())
+                    .size(18.0)
+                    .strong()
+                    .color(CherryBlossomTheme::TEXT_PRIMARY)
+            );
+
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("Edit as JSON").clicked() {
+                    self.edit_as_json_clicked = true;
+                }
+
+                ui.add_space(8.0);
+
+                if ui.button("Reset Settings").clicked() {
+                    *self = Self::default();
+                }
+
+                ui.add_space(8.0);
+
+                let total_count = self.count_settings();
+                let matches = if self.search_query.is_empty() {
+                    total_count
+                } else {
+                    self.count_matching_settings(&self.search_query)
+                };
+                ui.label(
+                    egui::RichText::new(format!("{} / {} Settings", matches, total_count))
+                        .size(12.0)
+                        .color(CherryBlossomTheme::TEXT_MUTED)
+                );
+
+                ui.add_space(16.0);
+
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.search_query)
+                        .hint_text("Search settings...")
+                        .desired_width(180.0)
+                );
+            });
+        });
+        ui.separator();
+
+        let content_height = available_height - ui.cursor().top();
+
+        ui.horizontal(|ui| {
+            ui.add_space(6.0);
+
+            let sidebar_width = 130.0;
+            ui.allocate_ui_with_layout(
+                egui::vec2(sidebar_width, content_height),
+                egui::Layout::top_down(egui::Align::Min),
+                |ui| {
+                    ui.set_width(sidebar_width);
+
+                    for category in [SettingsCategory::Editor, SettingsCategory::Workbench, SettingsCategory::Search] {
+                        let is_selected = self.selected_category == category;
+
+                        let (rect, response) = ui.allocate_exact_size(
+                            egui::vec2(sidebar_width, 32.0),
+                            egui::Sense::click(),
+                        );
+
+                        let bg_color = if is_selected {
+                            CherryBlossomTheme::BG_MID
+                        } else if response.hovered() {
+                            CherryBlossomTheme::BG_LIGHT
+                        } else {
+                            CherryBlossomTheme::BG_DARK
+                        };
+
+                        ui.painter().rect_filled(rect, 4.0, bg_color);
+
+                        if is_selected {
+                            ui.painter().line_segment(
+                                [rect.left_top(), rect.left_bottom()],
+                                egui::Stroke::new(3.0, CherryBlossomTheme::ACCENT_PINK),
+                            );
+                        }
+
+                        let text = format!("{}  {}", category.icon(), category.name());
+                        let text_color = if is_selected {
+                            CherryBlossomTheme::TEXT_PRIMARY
+                        } else {
+                            CherryBlossomTheme::TEXT_SECONDARY
+                        };
+
+                        ui.painter().text(
+                            rect.left_center() + egui::vec2(6.0, 0.0),
+                            egui::Align2::LEFT_CENTER,
+                            text,
+                            egui::FontId::new(13.0, egui::FontFamily::Proportional),
+                            text_color,
+                        );
+
+                        if response.clicked() {
+                            self.selected_category = category;
+                        }
+
+                        ui.add_space(2.0);
+                    }
+                },
+            );
+
+            ui.add_space(4.0);
+
+            ui.separator();
+            ui.add_space(4.0);
+
+            let has_search = !self.search_query.is_empty();
+            ui.allocate_ui_with_layout(
+                egui::vec2(ui.available_width() - 8.0, content_height),
+                egui::Layout::top_down(egui::Align::Min),
+                |ui| {
+                    ui.add_space(8.0);
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        match self.selected_category {
+                            SettingsCategory::Editor => self.show_editor_settings(ui, has_search, &self.search_query.clone()),
+                            SettingsCategory::Workbench => self.show_workbench_settings(ui, has_search, &self.search_query.clone()),
+                            SettingsCategory::Search => self.show_search_settings(ui, has_search, &self.search_query.clone()),
+                        }
+                    });
+                },
+            );
+
+            ui.add_space(4.0);
+        });
+    }
+
+    fn count_settings(&self) -> usize {
+        12
+    }
+
+    fn count_matching_settings(&self, query: &str) -> usize {
+        let query = query.to_lowercase();
+        let mut count = 0;
+
+        let setting_names = [
+            "show line numbers", "word wrap", "show whitespace",
+            "font size", "tab size", "use spaces",
+            "vim mode", "auto save", "auto save interval",
+            "sidebar", "status bar",
+            "ignore directories", "ignored directories", "auto-search threshold",
+        ];
+
+        for name in setting_names {
+            if name.contains(&query) {
+                count += 1;
+            }
+        }
+
+        count
+    }
+
+    fn show_editor_settings(&mut self, ui: &mut egui::Ui, has_search: bool, query: &str) {
+        use crate::theme::CherryBlossomTheme;
+        let query = query.to_lowercase();
+
+        if !has_search || self.matches_search(&query, &["display", "line numbers", "word wrap", "whitespace"]) {
+            self.setting_card(ui, "Display", |ui, settings| {
+                settings.cozy_row_filtered(ui, has_search, &query, "Show line numbers", "Display line numbers in the editor", |ui, settings| {
+                    ui.checkbox(&mut settings.show_line_numbers, "");
+                });
+                settings.cozy_row_filtered(ui, has_search, &query, "Word wrap", "Wrap lines to fit the viewport", |ui, settings| {
+                    ui.checkbox(&mut settings.word_wrap, "");
+                });
+                settings.cozy_row_filtered(ui, has_search, &query, "Show whitespace", "Render whitespace characters", |ui, settings| {
+                    ui.checkbox(&mut settings.show_whitespace, "");
+                });
+            });
+            ui.add_space(12.0);
+        }
+
+        if !has_search || self.matches_search(&query, &["font", "indentation", "tab", "spaces"]) {
+            self.setting_card(ui, "Font & Indentation", |ui, settings| {
+                settings.cozy_row_filtered(ui, has_search, &query, "Font size", "Editor font size in pixels", |ui, settings| {
+                    ui.add(egui::Slider::new(&mut settings.font_size, 8.0..=32.0)
+                        .show_value(true)
+                        .text("px"));
+                });
+                settings.cozy_row_filtered(ui, has_search, &query, "Tab size", "Number of spaces per tab", |ui, settings| {
+                    ui.add(egui::Slider::new(&mut settings.tab_size, 2..=8)
+                        .show_value(true)
+                        .text("spaces"));
+                });
+                settings.cozy_row_filtered(ui, has_search, &query, "Use spaces", "Insert spaces when pressing Tab", |ui, settings| {
+                    ui.checkbox(&mut settings.use_spaces, "");
+                });
+            });
+            ui.add_space(12.0);
+        }
+
+        if !has_search || self.matches_search(&query, &["behavior", "vim", "auto save", "interval"]) {
+            self.setting_card(ui, "Behavior", |ui, settings| {
+                settings.cozy_row_filtered(ui, has_search, &query, "Vim mode", "Enable vim-style keybindings", |ui, settings| {
+                    ui.checkbox(&mut settings.vim_mode, "");
+                });
+                settings.cozy_row_filtered(ui, has_search, &query, "Auto save", "Automatically save files", |ui, settings| {
+                    ui.checkbox(&mut settings.auto_save, "");
+                });
+                if settings.auto_save {
+                    ui.add_space(8.0);
+                    settings.cozy_row_filtered(ui, has_search, &query, "Auto save interval", "Seconds between auto-saves", |ui, settings| {
+                        ui.horizontal(|ui| {
+                            ui.add(egui::Slider::new(&mut settings.auto_save_interval, 5..=300)
+                                .show_value(true)
+                                .text("sec"));
+                        });
+                    });
+                }
+            });
+        }
+    }
+
+    fn show_workbench_settings(&mut self, ui: &mut egui::Ui, has_search: bool, query: &str) {
+        use crate::theme::CherryBlossomTheme;
+        let query = query.to_lowercase();
+
+        if !has_search || self.matches_search(&query, &["appearance", "sidebar", "status bar"]) {
+            self.setting_card(ui, "Appearance", |ui, settings| {
+                settings.cozy_row_filtered(ui, has_search, &query, "Sidebar", "Show the left sidebar", |ui, settings| {
+                    ui.checkbox(&mut settings.sidebar_visible, "");
+                });
+                settings.cozy_row_filtered(ui, has_search, &query, "Status bar", "Show the bottom status bar", |ui, settings| {
+                    ui.checkbox(&mut settings.status_bar_visible, "");
+                });
+            });
+        }
+    }
+
+    fn show_search_settings(&mut self, ui: &mut egui::Ui, has_search: bool, query: &str) {
+        use crate::theme::CherryBlossomTheme;
+        let query = query.to_lowercase();
+
+        self.setting_card(ui, "Search Behavior", |ui, settings| {
+            settings.cozy_row_filtered(ui, has_search, &query, "Ignore directories", "Exclude certain directories from search", |ui, settings| {
+                ui.checkbox(&mut settings.search_ignore_dirs_enabled, "");
+            });
+            if settings.search_ignore_dirs_enabled {
+                ui.add_space(16.0);
+                ui.label(
+                    egui::RichText::new("Ignored patterns")
+                        .size(13.0)
+                        .color(CherryBlossomTheme::TEXT_PRIMARY)
+                );
+                ui.label(
+                    egui::RichText::new("Comma-separated, use * for wildcards")
+                        .size(11.0)
+                        .color(CherryBlossomTheme::TEXT_MUTED)
+                );
+                ui.add_space(4.0);
+                ui.add(
+                    egui::TextEdit::multiline(&mut settings.search_ignored_dirs)
+                        .desired_rows(3)
+                        .desired_width(ui.available_width())
+                );
+                ui.label(
+                    egui::RichText::new("Examples: .git, node_modules, *venv")
+                        .size(11.0)
+                        .color(CherryBlossomTheme::TEXT_MUTED)
+                );
+                ui.add_space(16.0);
+            }
+            settings.cozy_row_filtered(ui, has_search, &query, "Auto-search threshold", "Min chars before search triggers", |ui, settings| {
+                ui.add(egui::DragValue::new(&mut settings.search_min_chars)
+                    .speed(1)
+                    .clamp_range(1..=10));
+            });
+        });
+    }
+
+    fn matches_search(&self, query: &str, keywords: &[&str]) -> bool {
+        keywords.iter().any(|kw| kw.to_lowercase().contains(query))
+    }
+
+    fn setting_card(&mut self, ui: &mut egui::Ui, title: &str, content: impl FnOnce(&mut egui::Ui, &mut Settings)) {
+        use crate::theme::CherryBlossomTheme;
+
+        let card_margin = 16.0;
+
+        egui::Frame::group(ui.style())
+            .fill(CherryBlossomTheme::BG_DARK)
+            .rounding(8.0)
+            .stroke(egui::Stroke::new(1.0, CherryBlossomTheme::BG_LIGHT))
+            .inner_margin(egui::Margin::same(card_margin as i8))
+            .show(ui, |ui| {
+                ui.set_width(ui.available_width());
+
+                ui.label(
+                    egui::RichText::new(title)
+                        .size(14.0)
+                        .strong()
+                        .color(CherryBlossomTheme::TEXT_PRIMARY)
+                );
+
+                ui.add_space(12.0);
+
+                ui.painter().line_segment(
+                    [
+                        ui.cursor().left_center(),
+                        ui.cursor().left_center() + egui::vec2(ui.available_width(), 0.0)
+                    ],
+                    egui::Stroke::new(1.0, CherryBlossomTheme::BG_LIGHT),
+                );
+                ui.add_space(12.0);
+
+                content(ui, self);
+            });
+
+        ui.add_space(12.0);
+    }
+
+    fn cozy_row(&mut self, ui: &mut egui::Ui, title: &str, description: &str, control: impl FnOnce(&mut egui::Ui, &mut Settings)) {
+        use crate::theme::CherryBlossomTheme;
+
+        ui.horizontal(|ui| {
+            ui.set_width(ui.available_width());
+
+            ui.vertical(|ui| {
+                ui.label(
+                    egui::RichText::new(title)
+                        .size(13.0)
+                        .color(CherryBlossomTheme::TEXT_PRIMARY)
+                );
+                ui.label(
+                    egui::RichText::new(description)
+                        .size(11.0)
+                        .color(CherryBlossomTheme::TEXT_MUTED)
+                );
+            });
+
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                control(ui, self);
+            });
+        });
+
+        ui.add_space(12.0);
+    }
+
+    fn cozy_row_filtered(&mut self, ui: &mut egui::Ui, has_search: bool, query: &str, title: &str, description: &str, control: impl FnOnce(&mut egui::Ui, &mut Settings)) {
+        if has_search {
+            let search_text = format!("{} {} {}", title, description, self.get_setting_keywords(title)).to_lowercase();
+            if !search_text.contains(query) {
+                return;
+            }
+        }
+        self.cozy_row(ui, title, description, control);
+    }
+
+    fn get_setting_keywords(&self, title: &str) -> &'static str {
+        match title {
+            "Show line numbers" => "gutter numbers",
+            "Word wrap" => "wrap line break",
+            "Show whitespace" => "space tab visible",
+            "Font size" => "text zoom",
+            "Tab size" => "indent width",
+            "Use spaces" => "soft tab indent",
+            "Vim mode" => "modal editing",
+            "Auto save" => "autosave backup",
+            "Auto save interval" => "frequency delay",
+            "Sidebar" => "explorer panel",
+            "Status bar" => "bottom panel info",
+            "Ignore directories" => "exclude skip folders",
+            "Auto-search threshold" => "minimum characters",
+            _ => "",
+        }
+    }
+}

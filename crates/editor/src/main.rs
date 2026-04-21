@@ -1,20 +1,30 @@
 mod theme;
 mod tabs;
 mod settings;
+mod search;
+mod command_palette;
 
 use eframe::egui;
 use theme::CherryBlossomTheme;
 use tabs::{TabManager, TabType};
 use settings::Settings;
+use command_palette::CommandPalette;
+use serde::{Serialize, Deserialize};
 
+#[derive(Serialize, Deserialize, Default)]
+struct AppState {
+    recent_projects: Vec<std::path::PathBuf>,
+}
+
+
+const MAX_RECENT_PROJECTS: usize = 10;
 
 struct AsterIDE {
     tabs: TabManager,
     settings: Settings,
     sidebar_width: f32,
     active_sidebar_tab: SidebarTab,
-    command_palette_open: bool,
-    command_palette_query: String,
+    command_palette: CommandPalette,
     status_message: String,
     status_message_time: f64,
     opened_folder: Option<std::path::PathBuf>,
@@ -22,6 +32,7 @@ struct AsterIDE {
     selected_folder: Option<std::path::PathBuf>,
     editor_had_focus: bool,
     editor_id: Option<egui::Id>,
+    recent_projects: Vec<std::path::PathBuf>,
 }
 
 #[derive(PartialEq)]
@@ -34,13 +45,13 @@ enum SidebarTab {
 
 impl Default for AsterIDE {
     fn default() -> Self {
+        let recent_projects = Self::load_recent_projects();
         Self {
             tabs: TabManager::new(),
-            settings: Settings::default(),
+            settings: Settings::load(),
             sidebar_width: 250.0,
             active_sidebar_tab: SidebarTab::Explorer,
-            command_palette_open: false,
-            command_palette_query: String::new(),
+            command_palette: CommandPalette::default(),
             status_message: "Ready".to_string(),
             status_message_time: 0.0,
             opened_folder: None,
@@ -48,14 +59,89 @@ impl Default for AsterIDE {
             selected_folder: None,
             editor_had_focus: false,
             editor_id: None,
+            recent_projects,
         }
     }
 }
 
 impl AsterIDE {
+    fn config_dir() -> Option<std::path::PathBuf> {
+        dirs::config_dir().map(|d| d.join("asteride"))
+    }
+
+    fn state_file_path() -> Option<std::path::PathBuf> {
+        Self::config_dir().map(|d| d.join("state.json"))
+    }
+
+    fn load_recent_projects() -> Vec<std::path::PathBuf> {
+        if let Some(path) = Self::state_file_path() {
+            if let Ok(content) = std::fs::read_to_string(&path) {
+                if let Ok(state) = serde_json::from_str::<AppState>(&content) {
+                    return state.recent_projects.into_iter()
+                        .filter(|p| p.exists())
+                        .take(MAX_RECENT_PROJECTS)
+                        .collect();
+                }
+            }
+        }
+        Vec::new()
+    }
+
+    fn save_recent_projects(&self) {
+        if let Some(path) = Self::state_file_path() {
+            if let Some(dir) = path.parent() {
+                let _ = std::fs::create_dir_all(dir);
+            }
+            let state = AppState {
+                recent_projects: self.recent_projects.clone(),
+            };
+            if let Ok(json) = serde_json::to_string_pretty(&state) {
+                let _ = std::fs::write(&path, json);
+            }
+        }
+    }
+
     fn set_status(&mut self, msg: String, ctx: &egui::Context) {
         self.status_message = msg;
         self.status_message_time = ctx.input(|i| i.time);
+    }
+
+    fn should_ignore_dir(&self, path: &std::path::Path) -> bool {
+        if !self.settings.search_ignore_dirs_enabled {
+            return false;
+        }
+
+        let dir_name = path.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("");
+
+        for pattern in self.settings.search_ignored_dirs.split(',') {
+            let pattern = pattern.trim();
+            if pattern.is_empty() {
+                continue;
+            }
+
+            if pattern.starts_with('*') && pattern.ends_with('*') && pattern.len() > 2 {
+                let middle = &pattern[1..pattern.len()-1];
+                if dir_name.contains(middle) {
+                    return true;
+                }
+            } else if pattern.starts_with('*') {
+                let suffix = &pattern[1..];
+                if dir_name.ends_with(suffix) {
+                    return true;
+                }
+            } else if pattern.ends_with('*') {
+                let prefix = &pattern[..pattern.len()-1];
+                if dir_name.starts_with(prefix) {
+                    return true;
+                }
+            } else if dir_name == pattern {
+                return true;
+            }
+        }
+
+        false
     }
 
     fn open_file(&mut self, ctx: &egui::Context) {
@@ -72,19 +158,34 @@ impl AsterIDE {
         }
     }
 
+    fn add_recent_project(&mut self, path: std::path::PathBuf) {
+        self.recent_projects.retain(|p| p != &path);
+        self.recent_projects.insert(0, path);
+        self.recent_projects.truncate(MAX_RECENT_PROJECTS);
+        self.save_recent_projects();
+    }
+
     fn open_folder(&mut self, ctx: &egui::Context) {
         if let Some(path) = rfd::FileDialog::new().pick_folder() {
             self.opened_folder = Some(path.clone());
             self.expanded_folders.insert(path.clone());
+            self.add_recent_project(path.clone());
             self.set_status(format!("Opened folder: {}", path.display()), ctx);
         }
     }
-    
+
     fn open_folder_dialog(&mut self) {
         if let Some(path) = rfd::FileDialog::new().pick_folder() {
             self.opened_folder = Some(path.clone());
             self.expanded_folders.insert(path.clone());
+            self.add_recent_project(path.clone());
         }
+    }
+
+    fn open_recent_project(&mut self, path: &std::path::PathBuf) {
+        self.opened_folder = Some(path.clone());
+        self.expanded_folders.insert(path.clone());
+        self.add_recent_project(path.clone());
     }
     
     fn create_new_file(&mut self) {
@@ -229,21 +330,29 @@ impl AsterIDE {
                         });
 
                         ui.menu_button("View", |ui| {
+                            let mut settings_changed = false;
                             if ui.checkbox(&mut self.settings.sidebar_visible, "Sidebar").clicked() {
+                                settings_changed = true;
                                 ui.close_menu();
                             }
                             if ui.checkbox(&mut self.settings.show_line_numbers, "Line Numbers").clicked() {
+                                settings_changed = true;
                                 ui.close_menu();
                             }
                             if ui.checkbox(&mut self.settings.word_wrap, "Word Wrap").clicked() {
+                                settings_changed = true;
                                 ui.close_menu();
                             }
                             if ui.checkbox(&mut self.settings.status_bar_visible, "Status Bar").clicked() {
+                                settings_changed = true;
                                 ui.close_menu();
+                            }
+                            if settings_changed {
+                                self.settings.save();
                             }
                             ui.separator();
                             if ui.button("Command Palette").clicked() {
-                                self.command_palette_open = true;
+                                self.command_palette.toggle();
                                 ui.close_menu();
                             }
                             if ui.button("Settings").clicked() {
@@ -280,7 +389,7 @@ impl AsterIDE {
                     
                     let search_active = self.active_sidebar_tab == SidebarTab::Search;
                     if self.icon_button(ui, "🔍", "Search", search_active, button_size) {
-                        self.toggle_sidebar(SidebarTab::Search);
+                        self.tabs.open_search_tab();
                     }
                     
                     let git_active = self.active_sidebar_tab == SidebarTab::Git;
@@ -293,7 +402,7 @@ impl AsterIDE {
                         self.toggle_sidebar(SidebarTab::Extensions);
                     }
                     
-                    ui.add_space(ui.available_height() - 60.0);
+                    ui.add_space(ui.available_height() - 50.0);
                     
                     let settings_active = self.tabs.active_tab()
                         .map(|t| t.tab_type == TabType::Settings)
@@ -345,6 +454,7 @@ impl AsterIDE {
             self.active_sidebar_tab = tab;
             self.settings.sidebar_visible = true;
         }
+        self.settings.save();
     }
 
     fn show_sidebar(&mut self, ctx: &egui::Context) {
@@ -360,7 +470,7 @@ impl AsterIDE {
                 
                 match self.active_sidebar_tab {
                     SidebarTab::Explorer => self.show_explorer(ui),
-                    SidebarTab::Search => self.show_search(ui),
+                    SidebarTab::Search => search::show_search_button(ui),
                     SidebarTab::Git => self.show_git(ui),
                     SidebarTab::Extensions => self.show_extensions(ui),
                 }
@@ -450,6 +560,12 @@ impl AsterIDE {
                 }
             }
         }
+
+        if response.middle_clicked() && !is_dir {
+            if let Ok(content) = std::fs::read_to_string(path) {
+                self.tabs.open_file_in_background(path.clone(), content);
+            }
+        }
         
         if is_expanded && is_dir {
             if let Ok(entries) = std::fs::read_dir(path) {
@@ -471,27 +587,6 @@ impl AsterIDE {
                     self.show_folder_tree(ui, &child_path, depth + 1);
                 }
             }
-        }
-    }
-
-    fn show_search(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Search");
-        ui.separator();
-        
-        let mut search_query = String::new();
-        ui.text_edit_singleline(&mut search_query);
-        
-        if ui.button("Search").clicked() {
-            self.set_status(format!("Searching for: {}", search_query), ui.ctx());
-        }
-        
-        ui.add_space(10.0);
-        ui.label("Replace");
-        let mut replace_query = String::new();
-        ui.text_edit_singleline(&mut replace_query);
-        
-        if ui.button("Replace All").clicked() {
-            self.set_status("Replace functionality not yet implemented".to_string(), ui.ctx());
         }
     }
 
@@ -595,7 +690,11 @@ impl AsterIDE {
                         if response.clicked() {
                             tab_to_activate = Some(i);
                         }
-                        
+
+                        if response.middle_clicked() {
+                            tab_to_close = Some(i);
+                        }
+
                         if close_response.clicked() {
                             tab_to_close = Some(i);
                         }
@@ -610,25 +709,152 @@ impl AsterIDE {
                     }
                     
                     ui.add_space(5.0);
-                    
-                    if ui.button("+").clicked() {
+
+                    let button_size = egui::vec2(30.0, 30.0);
+                    let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
+
+                    let bg_color = if response.hovered() {
+                        CherryBlossomTheme::BG_LIGHT
+                    } else {
+                        CherryBlossomTheme::BG_DARK
+                    };
+                    ui.painter().rect_filled(rect, 4.0, bg_color);
+
+                    ui.painter().text(
+                        rect.center(),
+                        egui::Align2::CENTER_CENTER,
+                        "+",
+                        egui::FontId::new(16.0, egui::FontFamily::Proportional),
+                        CherryBlossomTheme::TEXT_PRIMARY,
+                    );
+
+                    if response.clicked() {
                         self.tabs.new_tab();
                     }
                 });
             });
     }
 
+    fn show_welcome_screen(&mut self, ctx: &egui::Context) {
+        egui::CentralPanel::default()
+            .frame(egui::Frame::central_panel(&ctx.style()).fill(CherryBlossomTheme::BG_DARKEST))
+            .show(ctx, |ui| {
+                ui.vertical_centered(|ui| {
+                    ui.add_space(ui.available_height() * 0.15);
+
+                    ui.heading(
+                        egui::RichText::new("AsterIDE 🌸")
+                            .size(48.0)
+                            .color(CherryBlossomTheme::ACCENT_PINK)
+                    );
+                    ui.add_space(10.0);
+                    ui.label(
+                        egui::RichText::new("A Simple Text Editor written in Rust.")
+                            .size(16.0)
+                            .color(CherryBlossomTheme::TEXT_SECONDARY)
+                    );
+
+                    ui.add_space(40.0);
+
+                    let button_size = egui::vec2(200.0, 40.0);
+                    if ui.add_sized(button_size, egui::Button::new("📄  Open File")).clicked() {
+                        self.open_file(ctx);
+                    }
+                    ui.add_space(10.0);
+                    if ui.add_sized(button_size, egui::Button::new("📁  Open Folder")).clicked() {
+                        self.open_folder(ctx);
+                    }
+                    ui.add_space(10.0);
+                    if ui.add_sized(button_size, egui::Button::new("📝  New File")).clicked() {
+                        self.tabs.new_tab();
+                    }
+
+                    if !self.recent_projects.is_empty() {
+                        ui.add_space(40.0);
+                        ui.label(
+                            egui::RichText::new("Recent Projects")
+                                .size(18.0)
+                                .color(CherryBlossomTheme::TEXT_PRIMARY)
+                        );
+                        ui.add_space(15.0);
+
+                        let mut clicked_project: Option<std::path::PathBuf> = None;
+                        for project in self.recent_projects.iter().take(3) {
+                            let project_name = project.file_name()
+                                .map(|n| n.to_string_lossy().to_string())
+                                .unwrap_or_else(|| project.display().to_string());
+                            let project_path = project.display().to_string();
+
+                            ui.horizontal(|ui| {
+                                ui.add_space((ui.available_width() - 300.0) / 2.0);
+                                let response = ui.add(
+                                    egui::Button::new(
+                                        egui::RichText::new(format!("📁  {}", project_name))
+                                            .color(CherryBlossomTheme::TEXT_PRIMARY)
+                                    )
+                                    .fill(CherryBlossomTheme::BG_DARK)
+                                    .min_size(egui::vec2(300.0, 35.0))
+                                );
+
+                                if response.clicked() {
+                                    clicked_project = Some(project.clone());
+                                }
+
+                                response.on_hover_text(&project_path);
+                            });
+                            ui.add_space(8.0);
+                        }
+
+                        if let Some(project) = clicked_project {
+                            self.open_recent_project(&project);
+                        }
+                    }
+                });
+            });
+    }
+
     fn show_editor(&mut self, ctx: &egui::Context) {
-        let is_settings_tab = self.tabs.active_tab()
-            .map(|t| t.tab_type == TabType::Settings)
-            .unwrap_or(false);
-        
-        if is_settings_tab {
+        if self.tabs.is_empty() {
+            self.show_welcome_screen(ctx);
+            return;
+        }
+
+        let active_tab_type = self.tabs.active_tab()
+            .map(|t| t.tab_type)
+            .unwrap_or(TabType::File);
+
+        if active_tab_type == TabType::Settings {
             egui::CentralPanel::default()
                 .frame(egui::Frame::central_panel(&ctx.style()).fill(CherryBlossomTheme::BG_DARKEST))
                 .show(ctx, |ui| {
                     ui.set_height(ui.available_height());
                     self.settings.show_content(ui);
+                });
+            self.settings.save();
+
+            if self.settings.edit_as_json_clicked {
+                self.settings.edit_as_json_clicked = false;
+                if let Some(path) = settings::get_settings_file_path() {
+                    self.settings.save();
+                    if let Ok(content) = std::fs::read_to_string(&path) {
+                        self.tabs.open_file(path, content);
+                    }
+                }
+            }
+            return;
+        }
+        
+        if active_tab_type == TabType::SearchResults {
+            egui::CentralPanel::default()
+                .frame(egui::Frame::central_panel(&ctx.style()).fill(CherryBlossomTheme::BG_DARKEST))
+                .show(ctx, |ui| {
+                    let mut state: search::SearchState = ui.ctx().data_mut(|d| {
+                        d.get_temp(egui::Id::new("search_state")).unwrap_or_default()
+                    });
+                    search::show_search_tab(ui, &mut state, self.settings.search_min_chars);
+                    ui.ctx().data_mut(|d| {
+                        d.insert_temp(egui::Id::new("search_state"), state);
+                    });
                 });
             return;
         }
@@ -792,80 +1018,6 @@ impl AsterIDE {
                 });
             });
     }
-
-    fn show_command_palette(&mut self, ctx: &egui::Context) {
-        if !self.command_palette_open {
-            return;
-        }
-
-        egui::Window::new("")
-            .anchor(egui::Align2::CENTER_TOP, [0.0, 100.0])
-            .fixed_size([500.0, 400.0])
-            .collapsible(false)
-            .title_bar(false)
-            .show(ctx, |ui| {
-                ui.set_height(ui.available_height());
-                
-                ui.horizontal(|ui| {
-                    ui.label(
-                        egui::RichText::new(">")
-                            .size(20.0)
-                            .color(CherryBlossomTheme::ACCENT_PINK)
-                    );
-                    
-                    let response = ui.text_edit_singleline(&mut self.command_palette_query);
-                    response.request_focus();
-                    
-                    if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
-                        self.command_palette_open = false;
-                    }
-                });
-                
-                ui.separator();
-                
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    let commands = vec![
-                        ("New File", "Create a new file"),
-                        ("Open File", "Open an existing file"),
-                        ("Save", "Save current file"),
-                        ("Save As", "Save file with new name"),
-                        ("Close Tab", "Close current tab"),
-                        ("Toggle Sidebar", "Show/hide sidebar"),
-                        ("Toggle Line Numbers", "Show/hide line numbers"),
-                        ("Toggle Word Wrap", "Enable/disable word wrap"),
-                        ("Settings", "Open settings panel"),
-                        ("Command Palette", "Open command palette"),
-                    ];
-                    
-                    for (name, desc) in commands {
-                        if self.command_palette_query.is_empty()
-                            || name.to_lowercase().contains(&self.command_palette_query.to_lowercase())
-                            || desc.to_lowercase().contains(&self.command_palette_query.to_lowercase())
-                        {
-                            ui.horizontal(|ui| {
-                                ui.set_width(ui.available_width());
-                                
-                                ui.label(
-                                    egui::RichText::new(name)
-                                        .size(14.0)
-                                        .color(CherryBlossomTheme::TEXT_PRIMARY)
-                                );
-                                
-                                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                    ui.label(
-                                        egui::RichText::new(desc)
-                                            .size(12.0)
-                                            .color(CherryBlossomTheme::TEXT_MUTED)
-                                    );
-                                });
-                            });
-                            
-                            ui.separator();
-                        }
-                    }
-                });
-            });
-    }
 }
 
 impl eframe::App for AsterIDE {
@@ -890,13 +1042,13 @@ impl eframe::App for AsterIDE {
         
         ctx.input(|i| {
             if i.modifiers.command && i.key_pressed(egui::Key::P) {
-                self.command_palette_open = !self.command_palette_open;
-                if self.command_palette_open {
-                    self.command_palette_query.clear();
-                }
+                self.command_palette.toggle();
             }
             if i.modifiers.command && i.key_pressed(egui::Key::Comma) {
                 self.tabs.open_settings_tab();
+            }
+            if i.modifiers.command && i.modifiers.shift && i.key_pressed(egui::Key::F) {
+                self.tabs.open_search_tab();
             }
             if i.modifiers.command && i.key_pressed(egui::Key::S) {
                 self.save_current_file(ctx);
@@ -904,6 +1056,13 @@ impl eframe::App for AsterIDE {
             // I don't use Windows so I'll probably need to use a VM just to ensure this does work
             if !cfg!(target_os = "macos") && i.modifiers.ctrl && i.key_pressed(egui::Key::S) {
                 self.save_current_file(ctx);
+            }
+            if i.modifiers.command && i.key_pressed(egui::Key::O) {
+                if i.modifiers.shift {
+                    self.open_folder_dialog();
+                } else {
+                    self.open_file(ctx);
+                }
             }
             if i.modifiers.command && i.key_pressed(egui::Key::T) {
                 self.tabs.new_tab();
@@ -913,8 +1072,100 @@ impl eframe::App for AsterIDE {
             }
             if i.modifiers.command && i.key_pressed(egui::Key::B) {
                 self.settings.sidebar_visible = !self.settings.sidebar_visible;
+                self.settings.save();
             }
         });
+        
+        let global_search_triggered = ctx.data_mut(|d| {
+            d.get_temp::<bool>(egui::Id::new("global_search_triggered")).unwrap_or(false)
+        });
+        if global_search_triggered {
+            ctx.data_mut(|d| {
+                if let Some(mut state) = d.get_temp::<search::SearchState>(egui::Id::new("search_state")) {
+                    state.results.clear();
+                    
+                    let mut searched_files: std::collections::HashSet<std::path::PathBuf> = std::collections::HashSet::new();
+                    
+                    for tab in self.tabs.iter() {
+                        if tab.tab_type == TabType::File {
+                            if let Some(ref path) = tab.path {
+                                searched_files.insert(path.clone());
+                                let content = tab.editor.buffer.content().to_string();
+                                let lines: Vec<String> = content.lines().map(|s: &str| s.to_string()).collect();
+                                state.find_in_file(&path.display().to_string(), &lines);
+                            }
+                        }
+                    }
+                    
+                    if let Some(ref folder) = self.opened_folder {
+                        let mut walker = walkdir::WalkDir::new(folder)
+                            .into_iter();
+                        
+                        while let Some(entry) = walker.next() {
+                            let Ok(entry) = entry else { continue };
+                            let path = entry.path();
+                            
+                            if entry.file_type().is_dir() {
+                                if self.should_ignore_dir(path) {
+                                    walker.skip_current_dir();
+                                }
+                                continue;
+                            }
+                            
+                            if !entry.file_type().is_file() {
+                                continue;
+                            }
+                            
+                            if searched_files.contains(path) {
+                                continue;
+                            }
+                            
+                            if let Some(ext) = path.extension() {
+                                let ext = ext.to_string_lossy().to_lowercase();
+                                if !["txt", "rs", "md", "toml", "json", "js", "ts", "html", "css", "py", "c", "cpp", "h", "hpp", "go", "java", "rb", "sh", "yml", "yaml"].contains(&ext.as_str()) {
+                                    continue;
+                                }
+                            }
+                            
+                            if let Ok(content) = std::fs::read_to_string(path) {
+                                searched_files.insert(path.to_path_buf());
+                                let lines: Vec<String> = content.lines().map(|s: &str| s.to_string()).collect();
+                                let rel_path = path.strip_prefix(folder)
+                                    .map(|p| p.display().to_string())
+                                    .unwrap_or_else(|_| path.display().to_string());
+                                state.find_in_file(&rel_path, &lines);
+                            }
+                        }
+                    }
+                    
+                    d.insert_temp(egui::Id::new("search_state"), state);
+                }
+                d.insert_temp(egui::Id::new("global_search_triggered"), false);
+            });
+        }
+        
+        let global_replace_triggered = ctx.data_mut(|d| {
+            d.get_temp::<bool>(egui::Id::new("global_replace_all_triggered")).unwrap_or(false)
+        });
+        if global_replace_triggered {
+            if let Some(state) = ctx.data_mut(|d| {
+                d.get_temp::<search::SearchState>(egui::Id::new("search_state"))
+            }) {
+                for tab in self.tabs.iter_mut() {
+                    if tab.tab_type == TabType::File {
+                        let content = tab.editor.buffer.content().to_string();
+                        let new_content = state.replace_all_in_text(&content);
+                        if new_content != content {
+                            tab.editor.buffer = core::buffer::Buffer::from_str(&new_content);
+                            tab.is_modified = true;
+                        }
+                    }
+                }
+            }
+            ctx.data_mut(|d| {
+                d.insert_temp(egui::Id::new("global_replace_all_triggered"), false);
+            });
+        }
         
         self.show_menu_bar(ctx);
         self.show_activity_bar(ctx);
@@ -923,7 +1174,7 @@ impl eframe::App for AsterIDE {
         self.show_status_bar(ctx);
         self.show_editor(ctx);
         
-        self.show_command_palette(ctx);
+        self.command_palette.show(ctx);
     }
 }
 
