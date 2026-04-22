@@ -38,6 +38,8 @@ rustPlatform.buildRustPackage {
     mkdir -p $out/Applications
     cp -r target/release/bundle/osx/AsterIDE.app $out/Applications/
     
+    xattr -rc $out/Applications/AsterIDE.app 2>/dev/null || true
+    
     mkdir -p $out/bin
     ln -s $out/Applications/AsterIDE.app/Contents/MacOS/asteride $out/bin/asteride
   '';

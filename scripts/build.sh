@@ -28,6 +28,8 @@ mkdir -p "$BUILD_DIR"
 
 cp -r "target/release/bundle/osx/AsterIDE.app" "$BUILD_DIR/"
 
+xattr -rc "$BUILD_DIR/AsterIDE.app" 2>/dev/null || true
+
 ln -s /Applications "$BUILD_DIR/Applications"
 
 echo "Creating Disk Mounter Image."
