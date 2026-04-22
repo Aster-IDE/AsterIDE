@@ -21,5 +21,8 @@
 - Multi Language Integrated LSP
 - Proper Syntax Highlighting for over 30 Programming Languages
 - Tree like Appearance for Explorer Structure
+- Add Windows, and Linux Support (For Linux make sure both Wayland and X11 work properly)
+- Setup GitHub workflows for Building the App files.
+
 
 ---
