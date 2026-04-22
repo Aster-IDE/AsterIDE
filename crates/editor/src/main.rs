@@ -276,8 +276,9 @@ impl AsterIDE {
         self.add_recent_project(path.clone());
     }
 
+    #[allow(dead_code)]
     fn create_new_file(&mut self) {
-        let parent_dir = if let Some(folder) = &self.selected_folder {
+        let _parent_dir = if let Some(folder) = &self.selected_folder {
             folder.clone()
         } else if let Some(folder) = &self.opened_folder {
             folder.clone()
@@ -477,38 +478,38 @@ impl AsterIDE {
     }
 
     fn show_menu_bar(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::top("menu_bar")
-            .exact_height(30.0)
+        egui::Panel::top("menu_bar")
+            .exact_size(30.0)
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.style_mut().visuals.widgets.inactive.weak_bg_fill =
                         CherryBlossomTheme::BG_DARK;
 
-                    egui::menu::bar(ui, |ui| {
+                    egui::MenuBar::new().ui(ui, |ui| {
                         ui.menu_button("File", |ui| {
                             if ui.button("New File").clicked() {
                                 if self.settings.request_new_tab_with_confirmation() {
                                     self.tabs.new_tab();
                                     self.set_status("New file created".to_string(), ctx);
                                 }
-                                ui.close_menu();
+                                ui.close();
                             }
                             if ui.button("Open File...").clicked() {
                                 self.open_file(ctx);
-                                ui.close_menu();
+                                ui.close();
                             }
                             if ui.button("Open Folder...").clicked() {
                                 self.open_folder(ctx);
-                                ui.close_menu();
+                                ui.close();
                             }
                             ui.separator();
                             if ui.button("Save").clicked() {
                                 self.save_current_file(ctx);
-                                ui.close_menu();
+                                ui.close();
                             }
                             if ui.button("Save As...").clicked() {
                                 self.save_as_current_file(ctx);
-                                ui.close_menu();
+                                ui.close();
                             }
                             ui.separator();
                             if ui.button("Quit").clicked() {
@@ -518,20 +519,20 @@ impl AsterIDE {
 
                         ui.menu_button("Edit", |ui| {
                             if ui.button("Undo").clicked() {
-                                ui.close_menu();
+                                ui.close();
                             }
                             if ui.button("Redo").clicked() {
-                                ui.close_menu();
+                                ui.close();
                             }
                             ui.separator();
                             if ui.button("Cut").clicked() {
-                                ui.close_menu();
+                                ui.close();
                             }
                             if ui.button("Copy").clicked() {
-                                ui.close_menu();
+                                ui.close();
                             }
                             if ui.button("Paste").clicked() {
-                                ui.close_menu();
+                                ui.close();
                             }
                         });
 
@@ -540,34 +541,34 @@ impl AsterIDE {
                                 .checkbox(&mut self.settings.sidebar_visible, "Sidebar")
                                 .clicked()
                             {
-                                ui.close_menu();
+                                ui.close();
                             }
                             if ui
                                 .checkbox(&mut self.settings.show_line_numbers, "Line Numbers")
                                 .clicked()
                             {
-                                ui.close_menu();
+                                ui.close();
                             }
                             if ui
                                 .checkbox(&mut self.settings.word_wrap, "Word Wrap")
                                 .clicked()
                             {
-                                ui.close_menu();
+                                ui.close();
                             }
                             if ui
                                 .checkbox(&mut self.settings.status_bar_visible, "Status Bar")
                                 .clicked()
                             {
-                                ui.close_menu();
+                                ui.close();
                             }
                             ui.separator();
                             if ui.button("Command Palette").clicked() {
                                 self.command_palette.toggle();
-                                ui.close_menu();
+                                ui.close();
                             }
                             if ui.button("Settings").clicked() {
                                 self.tabs.open_settings_tab();
-                                ui.close_menu();
+                                ui.close();
                             }
                         });
 
@@ -577,7 +578,7 @@ impl AsterIDE {
                                     "AsterIDE - Cherry Blossom Edition v0.1.0".to_string(),
                                     ctx,
                                 );
-                                ui.close_menu();
+                                ui.close();
                             }
                         });
                     });
@@ -586,8 +587,8 @@ impl AsterIDE {
     }
 
     fn show_activity_bar(&mut self, ctx: &egui::Context) {
-        egui::SidePanel::left("activity_bar")
-            .exact_width(50.0)
+        egui::Panel::left("activity_bar")
+            .exact_size(50.0)
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
                     ui.set_height(ui.available_height());
@@ -684,8 +685,8 @@ impl AsterIDE {
             return;
         }
 
-        egui::SidePanel::left("sidebar")
-            .exact_width(self.sidebar_width)
+        egui::Panel::left("sidebar")
+            .exact_size(self.sidebar_width)
             .resizable(true)
             .show(ctx, |ui| {
                 ui.set_height(ui.available_height());
@@ -913,24 +914,24 @@ impl AsterIDE {
                     if ui.button("Open").clicked() {
                         if let Ok(content) = std::fs::read_to_string(&path) {
                             if !self.settings.request_file_open_with_confirmation(path.clone(), content.clone()) {
-                                ui.close_menu();
+                                ui.close();
                                 return;
                             }
                             self.tabs.open_file(path.clone(), content);
                             self.add_recent_file(path.to_path_buf());
                         }
-                        ui.close_menu();
+                        ui.close();
                     }
                     if ui.button("Open in Background").clicked() {
                         if let Ok(content) = std::fs::read_to_string(&path) {
                             if !self.settings.request_file_open_with_confirmation(path.clone(), content.clone()) {
-                                ui.close_menu();
+                                ui.close();
                                 return;
                             }
                             self.tabs.open_file_in_background(path.clone(), content);
                             self.add_recent_file(path.to_path_buf());
                         }
-                        ui.close_menu();
+                        ui.close();
                     }
                     ui.separator();
                 }
@@ -938,22 +939,22 @@ impl AsterIDE {
                 if is_dir {
                     if ui.button("New File...").clicked() {
                         self.create_new_file_in_folder(path);
-                        ui.close_menu();
+                        ui.close();
                     }
                     if ui.button("New Folder...").clicked() {
                         self.create_new_folder_in_folder(path);
-                        ui.close_menu();
+                        ui.close();
                     }
                     ui.separator();
                 }
 
                 if ui.button("Copy").clicked() {
                     ui.ctx().copy_text(name.clone());
-                    ui.close_menu();
+                    ui.close();
                 }
                 if ui.button("Copy Path").clicked() {
                     ui.ctx().copy_text(path.display().to_string());
-                    ui.close_menu();
+                    ui.close();
                 }
                 if ui.button("Copy Relative Path").clicked() {
                     if let Some(folder) = &self.opened_folder {
@@ -965,17 +966,17 @@ impl AsterIDE {
                     } else {
                         ui.ctx().copy_text(path.display().to_string());
                     }
-                    ui.close_menu();
+                    ui.close();
                 }
                 ui.separator();
 
                 if ui.button("Rename...").clicked() {
                     self.rename_path(path.clone());
-                    ui.close_menu();
+                    ui.close();
                 }
                 if ui.button("Delete...").clicked() {
                     self.delete_path(path.clone());
-                    ui.close_menu();
+                    ui.close();
                 }
         });
         }
@@ -1036,8 +1037,8 @@ impl AsterIDE {
     }
 
     fn show_tab_bar(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::top("tab_bar")
-            .exact_height(35.0)
+        egui::Panel::top("tab_bar")
+            .exact_size(35.0)
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.set_width(ui.available_width());
@@ -1179,7 +1180,7 @@ impl AsterIDE {
 
     fn show_welcome_screen(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default()
-            .frame(egui::Frame::central_panel(&ctx.style()).fill(CherryBlossomTheme::BG_DARKEST))
+            .frame(egui::Frame::central_panel(&ctx.global_style()).fill(CherryBlossomTheme::BG_DARKEST))
             .show(ctx, |ui| {
                 let recent_files_data: Vec<(std::path::PathBuf, String)> = self
                     .get_relevant_recent_files()
@@ -1410,7 +1411,7 @@ impl AsterIDE {
         if active_tab_type == TabType::Settings {
             egui::CentralPanel::default()
                 .frame(
-                    egui::Frame::central_panel(&ctx.style()).fill(CherryBlossomTheme::BG_DARKEST),
+                    egui::Frame::central_panel(&ctx.global_style()).fill(CherryBlossomTheme::BG_DARKEST),
                 )
                 .show(ctx, |ui| {
                     ui.set_height(ui.available_height());
@@ -1439,7 +1440,7 @@ impl AsterIDE {
         if active_tab_type == TabType::SearchResults {
             egui::CentralPanel::default()
                 .frame(
-                    egui::Frame::central_panel(&ctx.style()).fill(CherryBlossomTheme::BG_DARKEST),
+                    egui::Frame::central_panel(&ctx.global_style()).fill(CherryBlossomTheme::BG_DARKEST),
                 )
                 .show(ctx, |ui| {
                     let mut state: search::SearchState = ui.ctx().data_mut(|d| {
@@ -1454,7 +1455,7 @@ impl AsterIDE {
             return;
         }
 
-        let (content, line_count) = if let Some(editor) = self.tabs.current_editor() {
+        let (content, _line_count) = if let Some(editor) = self.tabs.current_editor() {
             let content = editor.buffer.content().to_string();
             let line_count = content.lines().count().max(1);
             let line_count = if content.ends_with('\n') {
@@ -1472,11 +1473,10 @@ impl AsterIDE {
         let _line_number_width = if _show_line_numbers { 50.0 } else { 0.0 };
 
         egui::CentralPanel::default()
-            .frame(egui::Frame::central_panel(&ctx.style()).fill(CherryBlossomTheme::BG_DARKEST))
+            .frame(egui::Frame::central_panel(&ctx.global_style()).fill(CherryBlossomTheme::BG_DARKEST))
             .show(ctx, |ui| {
                 let mut text_changed = false;
                 let mut new_text = content.clone();
-
 
                 let mut editor = egui_code_editor::CodeEditor::default()
                     .id_source("code_editor")
@@ -1510,8 +1510,8 @@ impl AsterIDE {
             return;
         }
 
-        egui::TopBottomPanel::bottom("status_bar")
-            .exact_height(22.0)
+        egui::Panel::bottom("status_bar")
+            .exact_size(22.0)
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.set_width(ui.available_width());

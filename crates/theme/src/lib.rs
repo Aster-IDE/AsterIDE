@@ -70,7 +70,7 @@ impl CherryBlossomTheme {
 
         ctx.set_visuals(visuals);
 
-        let mut style = (*ctx.style()).clone();
+        let mut style = (*ctx.global_style()).clone();
         style.text_styles.insert(
             TextStyle::Heading,
             FontId::new(20.0, egui::FontFamily::Proportional),
@@ -92,6 +92,6 @@ impl CherryBlossomTheme {
             FontId::new(11.0, egui::FontFamily::Proportional),
         );
 
-        ctx.set_style(style);
+        ctx.set_global_style(style);
     }
 }
