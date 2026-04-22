@@ -42,6 +42,24 @@ impl TabManager {
         })
     }
 
+    pub fn active_tab_path(&self) -> Option<&PathBuf> {
+        self.tabs.get(self.active_tab).and_then(|tab| {
+            if tab.tab_type == TabType::File {
+                tab.path.as_ref()
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn is_file_modified(&self, path: &PathBuf) -> bool {
+        self.tabs.iter().any(|tab| {
+            tab.tab_type == TabType::File
+                && tab.path.as_ref() == Some(path)
+                && tab.is_modified
+        })
+    }
+
     pub fn new_tab(&mut self) {
         let id = self.next_id;
         self.next_id += 1;
