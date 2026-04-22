@@ -54,13 +54,12 @@ jobs:
         name: AsterIDE-macos
         path: build/AsterIDE.dmg
 
-    - name: Upload DMG to release
-      if: startsWith(github.ref, 'refs/tags/')
+    - name: Create release
       uses: softprops/action-gh-release@v2
       with:
-        files: build/AsterIDE.dmg
-        draft: false
-        prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        prerelease: ${{ contains(github.ref_name, '-') }}
+        draft: true
+        files: |
+          build/AsterIDE.dmg
+        name: AsterIDE ${{ github.ref_name }}
+        fail_on_unmatched_files: true
