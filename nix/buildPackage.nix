@@ -45,7 +45,7 @@ rustPlatform.buildRustPackage {
   meta = with lib; {
     description = "A Simple Text Editor written in Rust.";
     homepage = "https://github.com/playfairs/AsterIDE";
-    license = licenses.glp3;
+    license = licenses.gpl3;
     maintainers = [];
     platforms = platforms.darwin;
   };
