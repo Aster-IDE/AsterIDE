@@ -1,4 +1,4 @@
-use crate::theme::CherryBlossomTheme;
+use theme::CherryBlossomTheme;
 
 #[derive(Clone, Default, Debug)]
 pub struct SearchState {

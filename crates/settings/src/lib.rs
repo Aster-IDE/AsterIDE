@@ -140,7 +140,7 @@ impl Settings {
     }
 
     pub fn show_content(&mut self, ui: &mut egui::Ui) {
-        use crate::theme::CherryBlossomTheme;
+        use theme::CherryBlossomTheme;
 
         let available_height = ui.available_height();
 
@@ -324,7 +324,7 @@ impl Settings {
     }
 
     fn show_editor_settings(&mut self, ui: &mut egui::Ui, has_search: bool, query: &str) {
-        use crate::theme::CherryBlossomTheme;
+        use theme::CherryBlossomTheme;
         let query = query.to_lowercase();
 
         if !has_search
@@ -489,7 +489,7 @@ impl Settings {
     }
 
     fn show_workbench_settings(&mut self, ui: &mut egui::Ui, has_search: bool, query: &str) {
-        use crate::theme::CherryBlossomTheme;
+        use theme::CherryBlossomTheme;
         let query = query.to_lowercase();
 
         if !has_search || self.matches_search(&query, &["appearance", "sidebar", "status bar"]) {
@@ -562,7 +562,7 @@ impl Settings {
     }
 
     fn show_search_settings(&mut self, ui: &mut egui::Ui, has_search: bool, query: &str) {
-        use crate::theme::CherryBlossomTheme;
+        use theme::CherryBlossomTheme;
         let query = query.to_lowercase();
 
         self.setting_card(ui, "Search Behavior", |ui, settings| {
@@ -628,7 +628,7 @@ impl Settings {
         title: &str,
         content: impl FnOnce(&mut egui::Ui, &mut Settings),
     ) {
-        use crate::theme::CherryBlossomTheme;
+        use theme::CherryBlossomTheme;
 
         let card_margin = 16.0;
 
@@ -671,7 +671,7 @@ impl Settings {
         description: &str,
         control: impl FnOnce(&mut egui::Ui, &mut Settings),
     ) {
-        use crate::theme::CherryBlossomTheme;
+        use theme::CherryBlossomTheme;
 
         ui.horizontal(|ui| {
             ui.set_width(ui.available_width());

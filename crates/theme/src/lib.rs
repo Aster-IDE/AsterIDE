@@ -25,6 +25,8 @@ impl CherryBlossomTheme {
     pub const BG_LIGHT: Color32 = Color32::from_rgb(70, 45, 58);
     pub const BG_LIGHTER: Color32 = Color32::from_rgb(85, 55, 70);
 
+    pub const BORDER_PINK: Color32 = Color32::from_rgb(85, 55, 70);
+
     pub const TEXT_PRIMARY: Color32 = Color32::from_rgb(255, 235, 245);
     pub const TEXT_SECONDARY: Color32 = Color32::from_rgb(200, 160, 180);
     pub const TEXT_MUTED: Color32 = Color32::from_rgb(150, 110, 130);

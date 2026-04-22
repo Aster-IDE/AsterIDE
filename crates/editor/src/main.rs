@@ -1,9 +1,3 @@
-mod command_palette;
-mod search;
-mod settings;
-mod tabs;
-mod theme;
-
 use command_palette::CommandPalette;
 use eframe::egui;
 use serde::{Deserialize, Serialize};
@@ -942,24 +936,26 @@ impl AsterIDE {
                             egui::Frame::group(&ui.style())
                                 .fill(CherryBlossomTheme::BG_DARK)
                                 .inner_margin(20.0)
+                                .stroke(egui::Stroke::new(1.0, CherryBlossomTheme::BORDER_PINK))
                                 .show(ui, |ui| {
                                     let button_size = egui::vec2(200.0, 40.0);
+                                    let button_stroke = egui::Stroke::new(1.0, CherryBlossomTheme::BORDER_PINK);
                                     if ui
-                                        .add_sized(button_size, egui::Button::new("📄  Open File"))
+                                        .add_sized(button_size, egui::Button::new("📄  Open File").stroke(button_stroke))
                                         .clicked()
                                     {
                                         self.open_file(ctx);
                                     }
                                     ui.add_space(10.0);
                                     if ui
-                                        .add_sized(button_size, egui::Button::new("📁  Open Folder"))
+                                        .add_sized(button_size, egui::Button::new("📁  Open Folder").stroke(button_stroke))
                                         .clicked()
                                     {
                                         self.open_folder(ctx);
                                     }
                                     ui.add_space(10.0);
                                     if ui
-                                        .add_sized(button_size, egui::Button::new("📝  New File"))
+                                        .add_sized(button_size, egui::Button::new("📝  New File").stroke(button_stroke))
                                         .clicked()
                                     {
                                         self.tabs.new_tab();
@@ -985,8 +981,11 @@ impl AsterIDE {
                                 egui::Frame::group(&ui.style())
                                     .fill(CherryBlossomTheme::BG_DARK)
                                     .inner_margin(16.0)
+                                    .stroke(egui::Stroke::new(1.0, CherryBlossomTheme::BORDER_PINK))
                                     .show(ui, |ui| {
                                         ui.set_width(right_width - 32.0);
+
+                                        let recent_button_stroke = egui::Stroke::new(1.0, CherryBlossomTheme::BORDER_PINK);
 
                                         if has_recent_files {
                                             let title = if has_project_folder {
@@ -1011,6 +1010,7 @@ impl AsterIDE {
                                                             .size(12.0),
                                                     )
                                                     .fill(CherryBlossomTheme::BG_MID)
+                                                    .stroke(recent_button_stroke)
                                                     .min_size(egui::vec2(right_width - 50.0, 30.0)),
                                                 );
 
@@ -1052,6 +1052,7 @@ impl AsterIDE {
                                                             .size(12.0),
                                                     )
                                                     .fill(CherryBlossomTheme::BG_MID)
+                                                    .stroke(recent_button_stroke)
                                                     .min_size(egui::vec2(right_width - 50.0, 30.0)),
                                                 );
 
