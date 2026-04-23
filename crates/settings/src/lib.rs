@@ -104,6 +104,7 @@ impl SettingsCategory {
         }
     }
 
+    #[allow(dead_code)]
     fn icon(&self) -> &'static str {
         match self {
             SettingsCategory::Editor => "📝",
@@ -241,7 +242,7 @@ impl Settings {
             return;
         }
 
-        let screen_rect = ctx.screen_rect();
+        let screen_rect = ctx.content_rect();
 
         egui::Area::new(egui::Id::new("settings_dim_overlay"))
             .fixed_pos(screen_rect.min)
@@ -253,9 +254,9 @@ impl Settings {
                 );
             });
 
-        let modal_frame = egui::Frame::none()
+        let modal_frame = egui::Frame::new()
             .fill(theme::CherryBlossomTheme::BG_DARKEST)
-            .rounding(12.0)
+            .corner_radius(12.0)
             .stroke(egui::Stroke::new(1.0, theme::CherryBlossomTheme::BG_LIGHT))
             .inner_margin(egui::Margin::symmetric(32, 28))
             .shadow(egui::epaint::Shadow {
@@ -305,7 +306,7 @@ impl Settings {
                                     .strong()
                                     .color(theme::CherryBlossomTheme::BG_DARKEST),
                             )
-                            .rounding(8.0)
+                            .corner_radius(8.0)
                             .fill(theme::CherryBlossomTheme::ACCENT_PINK),
                         );
                         if discard_btn.clicked() {
@@ -326,7 +327,7 @@ impl Settings {
                                     .size(14.0)
                                     .color(theme::CherryBlossomTheme::TEXT_PRIMARY),
                             )
-                            .rounding(8.0)
+                            .corner_radius(8.0)
                             .fill(theme::CherryBlossomTheme::BG_MID),
                         );
                         if cancel_btn.clicked() {
@@ -414,7 +415,7 @@ impl Settings {
                                 .strong()
                                 .color(theme::CherryBlossomTheme::BG_DARKEST),
                         )
-                        .rounding(btn_rounding)
+                        .corner_radius(btn_rounding)
                         .fill(theme::CherryBlossomTheme::ACCENT_PINK),
                     );
                     if apply_btn.clicked() {
@@ -430,7 +431,7 @@ impl Settings {
                             .size(13.0)
                             .color(theme::CherryBlossomTheme::TEXT_PRIMARY),
                     )
-                    .rounding(btn_rounding)
+                    .corner_radius(btn_rounding)
                     .fill(theme::CherryBlossomTheme::BG_MID),
                 );
                 if json_btn.clicked() {
@@ -446,7 +447,7 @@ impl Settings {
                             .size(13.0)
                             .color(theme::CherryBlossomTheme::TEXT_PRIMARY),
                     )
-                    .rounding(btn_rounding)
+                    .corner_radius(btn_rounding)
                     .fill(theme::CherryBlossomTheme::BG_MID),
                 );
                 if reset_btn.clicked() {
@@ -623,7 +624,6 @@ impl Settings {
     }
 
     fn show_editor_settings(&mut self, ui: &mut egui::Ui, has_search: bool, query: &str) {
-        use theme::CherryBlossomTheme;
         let query = query.to_lowercase();
 
         if !has_search
@@ -788,7 +788,6 @@ impl Settings {
     }
 
     fn show_appearance_settings(&mut self, ui: &mut egui::Ui, has_search: bool, query: &str) {
-        use theme::CherryBlossomTheme;
         let query = query.to_lowercase();
 
         self.setting_card(ui, "UI Elements", |ui, settings| {
@@ -840,7 +839,6 @@ impl Settings {
     }
 
     fn show_workbench_settings(&mut self, ui: &mut egui::Ui, has_search: bool, query: &str) {
-        use theme::CherryBlossomTheme;
         let query = query.to_lowercase();
 
         if !has_search || self.matches_search(&query, &["recent", "files", "projects", "history"]) {
@@ -927,7 +925,7 @@ impl Settings {
                     ui.add(
                         egui::DragValue::new(&mut settings.search_min_chars)
                             .speed(1)
-                            .clamp_range(1..=10),
+                            .range(1..=10),
                     );
                 },
             );
@@ -950,7 +948,7 @@ impl Settings {
 
         egui::Frame::group(ui.style())
             .fill(CherryBlossomTheme::BG_DARK)
-            .rounding(self.corner_roundness)
+            .corner_radius(self.corner_roundness)
             .stroke(egui::Stroke::new(1.0, CherryBlossomTheme::BG_LIGHT))
             .inner_margin(egui::Margin::same(card_margin as i8))
             .show(ui, |ui| {

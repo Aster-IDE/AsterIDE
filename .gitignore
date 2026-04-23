@@ -1,3 +1,11 @@
+# os garbage
 .DS_Store
-target
-build
+
+# rust
+target/
+
+# script artifacts
+build/
+
+# nix
+result
