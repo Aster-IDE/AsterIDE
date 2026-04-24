@@ -50,14 +50,14 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Build Windows binary
         run: |
-          cargo build --release --target x86_64-pc-windows-msvc
+          cargo rustc --release --target x86_64-pc-windows-msvc -- -C windows-subsystem=windows
           New-Item -ItemType Directory -Force -Path build
           if (Test-Path target/x86_64-pc-windows-msvc/release/asteride.exe) {
             Copy-Item target/x86_64-pc-windows-msvc/release/asteride.exe build/asteride.exe
           } elseif (Test-Path target/x86_64-pc-windows-msvc/release/asteride) {
             Copy-Item target/x86_64-pc-windows-msvc/release/asteride build/asteride.exe
           } else {
-            Write-Host "Binary not found, listing target directory:"
+            Write-Host "Binary not found, listing target directory"
             Get-ChildItem -Path target/x86_64-pc-windows-msvc/release -Recurse
             exit 1
           }
@@ -65,7 +65,10 @@ jobs:
       - name: Create Windows archive
         run: |
           if (Test-Path build/asteride.exe) {
-            Compress-Archive -Path build/asteride.exe -DestinationPath build/AsterIDE-Windows-${{ env.SHORT_SHA }}.zip
+            New-Item -ItemType Directory -Force -Path temp_archive
+            Copy-Item build/asteride.exe temp_archive/
+            Compress-Archive -Path temp_archive/* -DestinationPath build/AsterIDE-Windows-${{ env.SHORT_SHA }}.zip
+            Remove-Item -Recurse -Force temp_archive
           } else {
             Write-Host "Binary not found, checking target directory"
             Get-ChildItem -Path target/x86_64-pc-windows-msvc/release -Recurse
