@@ -16,7 +16,6 @@ long_description = """
 A Simple Text Editor written in Rust, made using eGUI, and eframe.
 """
 
-# Windows-specific configuration to make it a GUI application
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["winuser"] }
 
