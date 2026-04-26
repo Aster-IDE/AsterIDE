@@ -39,6 +39,7 @@ pub struct Settings {
     pub corner_roundness: f32,
     pub theme_family: theme::ThemeFamily,
     pub theme_variant: theme::ThemeVariant,
+    pub pinned_files: Vec<std::path::PathBuf>,
     #[serde(skip)]
     pub selected_category: SettingsCategory,
     #[serde(skip)]
@@ -85,6 +86,7 @@ impl Default for Settings {
             corner_roundness: 6.0,
             theme_family: theme::ThemeFamily::CherryBlossom,
             theme_variant: theme::ThemeVariant::CherryBlossomDark,
+            pinned_files: Vec::new(),
             selected_category: SettingsCategory::default(),
             search_query: String::new(),
             edit_as_json_clicked: false,
@@ -150,7 +152,7 @@ impl Settings {
         settings
     }
 
-    fn capture_saved_state(&mut self) {
+    pub fn capture_saved_state(&mut self) {
         let mut saved = self.clone();
         saved.saved_state = None;
         self.saved_state = Some(Box::new(saved));
@@ -181,6 +183,7 @@ impl Settings {
                 || self.corner_roundness != saved.corner_roundness
                 || self.theme_family != saved.theme_family
                 || self.theme_variant != saved.theme_variant
+                || self.pinned_files != saved.pinned_files
         } else {
             false
         }
@@ -216,10 +219,11 @@ impl Settings {
             self.corner_roundness = saved.corner_roundness;
             self.theme_family = saved.theme_family;
             self.theme_variant = saved.theme_variant;
+            self.pinned_files = saved.pinned_files.clone();
         }
     }
 
-    fn save(&self) {
+    pub fn save(&self) {
         if let Some(path) = settings_file_path() {
             if let Some(dir) = path.parent() {
                 let _ = std::fs::create_dir_all(dir);

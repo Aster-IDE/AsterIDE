@@ -260,14 +260,23 @@ pub fn show_search_tab(ui: &mut egui::Ui, state: &mut SearchState, min_chars: us
                     }
 
                     let is_current = i == state.current_result;
-
+                    
+                    let row_id = ui.id().with(i);
+                    let row_response = ui.interact(
+                        ui.available_rect_before_wrap(),
+                        row_id,
+                        egui::Sense::click(),
+                    );
+                    
                     let bg_color = if is_current {
-                        theme::CherryBlossomTheme::BG_DARK()
+                        theme::CherryBlossomTheme::BG_LIGHT()
+                    } else if row_response.hovered() {
+                        theme::CherryBlossomTheme::BG_MID()
                     } else {
                         theme::CherryBlossomTheme::BG_DARKEST()
                     };
 
-                    let response = egui::Frame::new()
+                    egui::Frame::new()
                         .fill(bg_color)
                         .inner_margin(egui::vec2(8.0, 4.0))
                         .show(ui, |ui| {
@@ -315,13 +324,17 @@ pub fn show_search_tab(ui: &mut egui::Ui, state: &mut SearchState, min_chars: us
                                             .size(12.0),
                                     );
                                 });
-                            })
-                            .response
-                        })
-                        .response;
+                            });
+                        });
 
-                    if response.clicked() {
+                    if row_response.clicked() {
                         state.current_result = i;
+                        ui.ctx().data_mut(|d| {
+                            d.insert_temp(
+                                egui::Id::new("search_jump_request"),
+                                (result.file_path.clone(), result.line, result.start_col, result.end_col),
+                            );
+                        });
                     }
 
                     ui.add_space(1.0);
