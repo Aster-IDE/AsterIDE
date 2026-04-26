@@ -60,9 +60,11 @@ impl AsterIDE {
     fn new_with_path(initial_path: Option<std::path::PathBuf>) -> Self {
         let recent_projects = Self::load_recent_projects();
         let recent_files = Self::load_recent_files();
-        Self {
+        let settings = Settings::load();
+        
+        let mut asteride = Self {
             tabs: TabManager::new(),
-            settings: Settings::load(),
+            settings,
             sidebar_width: 250.0,
             active_sidebar_tab: SidebarTab::Explorer,
             command_palette: CommandPalette::default(),
@@ -77,7 +79,18 @@ impl AsterIDE {
             recent_files,
             renaming_path: None,
             initial_path,
+        };
+        
+        // Open pinned files on startup
+        for pinned_file in asteride.settings.pinned_files.clone() {
+            if pinned_file.exists() {
+                if let Ok(content) = std::fs::read_to_string(&pinned_file) {
+                    asteride.tabs.open_file(pinned_file, content);
+                }
+            }
         }
+        
+        asteride
     }
 }
 
@@ -544,6 +557,8 @@ impl AsterIDE {
                                 .clicked()
                             {
                                 ui.close();
+                                self.settings.save();
+                                self.settings.capture_saved_state();
                             }
                             if ui
                                 .checkbox(&mut self.settings.show_line_numbers, "Line Numbers")
@@ -592,7 +607,7 @@ impl AsterIDE {
         egui::Panel::left("activity_bar")
             .exact_size(50.0)
             .show(ctx, |ui| {
-                ui.vertical(|ui| {
+                ui.vertical_centered(|ui| {
                     ui.set_height(ui.available_height());
                     ui.style_mut().spacing.item_spacing = egui::vec2(0.0, 10.0);
 
@@ -681,11 +696,18 @@ impl AsterIDE {
     }
 
     fn toggle_sidebar(&mut self, tab: SidebarTab) {
+        let old_visibility = self.settings.sidebar_visible;
+        
         if self.active_sidebar_tab == tab && self.settings.sidebar_visible {
             self.settings.sidebar_visible = false;
         } else {
             self.active_sidebar_tab = tab;
             self.settings.sidebar_visible = true;
+        }
+        
+        if old_visibility != self.settings.sidebar_visible {
+            self.settings.save();
+            self.settings.capture_saved_state();
         }
     }
 
@@ -694,8 +716,10 @@ impl AsterIDE {
             return;
         }
 
-        egui::Panel::left("sidebar")
-            .exact_size(self.sidebar_width)
+        let panel_response = egui::Panel::left("sidebar")
+            .default_width(self.sidebar_width.clamp(250.0, 550.0))
+            .min_width(250.0)
+            .max_width(550.0)
             .resizable(true)
             .show(ctx, |ui| {
                 ui.set_height(ui.available_height());
@@ -707,6 +731,14 @@ impl AsterIDE {
                     SidebarTab::Extensions => self.show_extensions(ui),
                 }
             });
+        
+        let new_width: f32 = panel_response.response.rect.width();
+        
+        if new_width.is_finite() && new_width > 0.0 && (new_width - self.sidebar_width).abs() > 1.0 {
+            self.sidebar_width = new_width;
+            self.settings.save();
+            self.settings.capture_saved_state();
+        }
     }
 
     fn show_explorer(&mut self, ui: &mut egui::Ui) {
@@ -941,6 +973,28 @@ impl AsterIDE {
                             self.add_recent_file(path.to_path_buf());
                         }
                         ui.close();
+                    }
+                    
+                    ui.separator();
+                    
+                    let is_pinned = self.settings.pinned_files.contains(&path);
+                    
+                    if is_pinned {
+                        if ui.button("📌 Unpin File").clicked() {
+                            self.settings.pinned_files.retain(|p| p != path);
+                            self.settings.save();
+                            self.settings.capture_saved_state();
+                            ui.close();
+                        }
+                    } else {
+                        if ui.button("📌 Pin File").clicked() {
+                            if !self.settings.pinned_files.contains(&path) {
+                                self.settings.pinned_files.push(path.clone());
+                                self.settings.save();
+                                self.settings.capture_saved_state();
+                            }
+                            ui.close();
+                        }
                     }
                     ui.separator();
                 }
@@ -1223,16 +1277,20 @@ impl AsterIDE {
 
                 ui.vertical_centered(|ui| {
                     ui.add_space(ui.available_height() * 0.08);
-                    ui.heading(
-                        egui::RichText::new("AsterIDE 🌸")
-                            .size(48.0)
-                            .color(CherryBlossomTheme::ACCENT_PINK()),
+                    ui.add(
+                        egui::Label::new(
+                            egui::RichText::new("AsterIDE 🌸")
+                                .size(48.0)
+                                .color(CherryBlossomTheme::ACCENT_PINK()),
+                        ).selectable(false).sense(egui::Sense::hover())
                     );
                     ui.add_space(10.0);
-                    ui.label(
-                        egui::RichText::new("A Simple Text Editor written in Rust.")
-                            .size(16.0)
-                            .color(CherryBlossomTheme::TEXT_SECONDARY()),
+                    ui.add(
+                        egui::Label::new(
+                            egui::RichText::new("A Simple Text Editor written in Rust.")
+                                .size(16.0)
+                                .color(CherryBlossomTheme::TEXT_SECONDARY()),
+                        ).selectable(false).sense(egui::Sense::hover())
                     );
                 });
 
@@ -1240,12 +1298,13 @@ impl AsterIDE {
 
                 ui.horizontal(|ui| {
                     let total_width = ui.available_width();
+                    let total_width = total_width.max(400.0);
                     let left_width = if has_any_recents {
-                        total_width * 0.4
+                        (total_width * 0.4).max(200.0)
                     } else {
                         total_width
                     };
-                    let right_width = total_width * 0.55;
+                    let right_width = (total_width * 0.55).max(200.0);
 
                     ui.allocate_ui_with_layout(
                         egui::vec2(left_width, ui.available_height()),
@@ -1319,10 +1378,12 @@ impl AsterIDE {
                                             } else {
                                                 "Recent Files".to_string()
                                             };
-                                            ui.label(
-                                                egui::RichText::new(title)
-                                                    .size(16.0)
-                                                    .color(CherryBlossomTheme::TEXT_PRIMARY()),
+                                            ui.add(
+                                                egui::Label::new(
+                                                    egui::RichText::new(title)
+                                                        .size(16.0)
+                                                        .color(CherryBlossomTheme::TEXT_PRIMARY()),
+                                                ).selectable(false).sense(egui::Sense::hover())
                                             );
                                             ui.add_space(10.0);
 
@@ -1364,10 +1425,12 @@ impl AsterIDE {
                                         }
 
                                         if has_recent_projects {
-                                            ui.label(
-                                                egui::RichText::new("Recent Projects")
-                                                    .size(16.0)
-                                                    .color(CherryBlossomTheme::TEXT_PRIMARY()),
+                                            ui.add(
+                                                egui::Label::new(
+                                                    egui::RichText::new("Recent Projects")
+                                                        .size(16.0)
+                                                        .color(CherryBlossomTheme::TEXT_PRIMARY()),
+                                                ).selectable(false).sense(egui::Sense::hover())
                                             );
                                             ui.add_space(10.0);
 
@@ -1401,6 +1464,7 @@ impl AsterIDE {
                     }
                 });
             });
+        
     }
 
     fn show_editor(&mut self, ctx: &egui::Context) {
@@ -1460,6 +1524,35 @@ impl AsterIDE {
                     ui.ctx().data_mut(|d| {
                         d.insert_temp(egui::Id::new("search_state"), state);
                     });
+                    
+                    if let Some((file_path, line, _start_col, _end_col)) = ui.ctx().data_mut(|d| {
+                        d.get_temp::<(String, usize, usize, usize)>(egui::Id::new("search_jump_request"))
+                    }) {
+                        ui.ctx().data_mut(|d| {
+                            d.remove::<(String, usize, usize, usize)>(egui::Id::new("search_jump_request"));
+                        });
+                        
+                        let path = std::path::PathBuf::from(&file_path);
+                        if !self.tabs.is_file_open(&path) {
+                            if let Ok(content) = std::fs::read_to_string(&path) {
+                                self.tabs.open_file(path.clone(), content);
+                                self.add_recent_file(path.clone());
+                            }
+                        } else {
+                            if let Some(index) = self.tabs.tabs.iter().position(|tab| {
+                                tab.tab_type == TabType::File && tab.path.as_ref() == Some(&path)
+                            }) {
+                                self.tabs.set_active(index);
+                            }
+                        }
+                        
+                        ctx.data_mut(|d| {
+                            d.insert_temp(
+                                egui::Id::new("goto_line_request"),
+                                line.saturating_sub(1),
+                            );
+                        });
+                    }
                 });
             return;
         }
@@ -1480,12 +1573,47 @@ impl AsterIDE {
         let _show_line_numbers = self.settings.show_line_numbers;
         let font_size = self.settings.font_size;
         let _line_number_width = if _show_line_numbers { 50.0 } else { 0.0 };
+        
+        // fuck my big chungus life, this doesnt work yet i need to figure it out
+        let goto_line = ctx.data_mut(|d| {
+            d.get_temp::<usize>(egui::Id::new("goto_line_request"))
+        });
+        
+        let mut target_scroll_offset: Option<f32> = None;
+        if let Some(target_line) = goto_line {
+            ctx.data_mut(|d| {
+                d.remove::<usize>(egui::Id::new("goto_line_request"));
+            });
+            
+            let line_height = font_size * 1.5;
+            target_scroll_offset = Some(target_line as f32 * line_height);
+            
+            let lines: Vec<&str> = content.lines().collect();
+            let target_line = target_line.min(lines.len().saturating_sub(1));
+            let mut cursor_pos = 0;
+            for (i, line) in lines.iter().enumerate() {
+                if i == target_line {
+                    break;
+                }
+                cursor_pos += line.len() + 1;
+            }
+            if let Some(editor) = self.tabs.current_editor_mut() {
+                editor.cursor.move_to(cursor_pos);
+            }
+        }
 
         egui::CentralPanel::default()
             .frame(egui::Frame::central_panel(&ctx.global_style()).fill(CherryBlossomTheme::BG_DARKEST()))
             .show(ctx, |ui| {
                 let mut text_changed = false;
                 let mut new_text = content.clone();
+
+                let editor_id = ui.id().with("code_editor");
+                if let Some(scroll_offset) = target_scroll_offset {
+                    ui.ctx().memory_mut(|mem| {
+                        mem.data.insert_temp(editor_id.with("scroll_offset"), scroll_offset);
+                    });
+                }
 
                 let mut editor = egui_code_editor::CodeEditor::default()
                     .id_source("code_editor")
@@ -1671,7 +1799,12 @@ impl eframe::App for AsterIDE {
                 }
             }
             if i.modifiers.command && i.key_pressed(egui::Key::B) {
+                let old_visibility = self.settings.sidebar_visible;
                 self.settings.sidebar_visible = !self.settings.sidebar_visible;
+                if old_visibility != self.settings.sidebar_visible {
+                    self.settings.save();
+                    self.settings.capture_saved_state();
+                }
             }
         });
 
@@ -1945,7 +2078,7 @@ fn is_system_clear() -> bool {
 
 // On non-macOS platforms, these functions are defined but do not perform any logic.
 // honestly it'd be funny if I made these do something, specifically with a
-// custom wayland compositor (the one I'm making in rust.
+// custom wayland compositor (the one I'm making in rust.)
 // anyways, for now it just returns false because that makes sense.
 #[cfg(not(target_os = "macos"))]
 fn is_system_dark_mode() -> bool {
