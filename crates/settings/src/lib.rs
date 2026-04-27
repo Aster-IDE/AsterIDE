@@ -6,6 +6,7 @@ pub enum SettingsCategory {
     Appearance,
     Workbench,
     Search,
+    About,
 }
 
 impl Default for SettingsCategory {
@@ -107,6 +108,7 @@ impl SettingsCategory {
             SettingsCategory::Appearance => "Appearance",
             SettingsCategory::Workbench => "Workbench",
             SettingsCategory::Search => "Search",
+            SettingsCategory::About => "About",
         }
     }
 
@@ -117,6 +119,7 @@ impl SettingsCategory {
             SettingsCategory::Appearance => "🎨",
             SettingsCategory::Workbench => "🖥️",
             SettingsCategory::Search => "🔍",
+            SettingsCategory::About => "ℹ️",
         }
     }
 }
@@ -513,6 +516,7 @@ impl Settings {
                         SettingsCategory::Appearance,
                         SettingsCategory::Workbench,
                         SettingsCategory::Search,
+                        SettingsCategory::About,
                     ] {
                         let is_selected = self.selected_category == category;
 
@@ -588,6 +592,9 @@ impl Settings {
                         }
                         SettingsCategory::Search => {
                             self.show_search_settings(ui, has_search, &self.search_query.clone())
+                        }
+                        SettingsCategory::About => {
+                            self.show_about_settings(ui)
                         }
                     });
                 },
@@ -1043,8 +1050,94 @@ impl Settings {
 
                 content(ui, self);
             });
+    }
 
-        ui.add_space(12.0);
+    fn show_about_settings(&mut self, ui: &mut egui::Ui) {
+        use theme::CherryBlossomTheme;
+
+        egui::Frame::group(ui.style())
+            .fill(CherryBlossomTheme::BG_DARK())
+            .corner_radius(self.corner_roundness)
+            .stroke(egui::Stroke::new(1.0, CherryBlossomTheme::BG_LIGHT()))
+            .inner_margin(egui::Margin::same(24))
+            .show(ui, |ui| {
+                ui.set_width(ui.available_width());
+
+                ui.vertical_centered(|ui| {
+                    ui.add_space(20.0);
+                    
+                    ui.label(
+                        egui::RichText::new("AsterIDE 🌸")
+                            .size(32.0)
+                            .strong()
+                            .color(CherryBlossomTheme::ACCENT_PINK()),
+                    );
+                    ui.add_space(8.0);
+                    ui.label(
+                        egui::RichText::new("AsterIDE v0.1.5")
+                            .size(14.0)
+                            .color(CherryBlossomTheme::TEXT_SECONDARY()),
+                    );
+                    
+                    ui.add_space(20.0);
+                    ui.separator();
+                    ui.add_space(20.0);
+                    
+                    ui.label(
+                        egui::RichText::new("A Simple Text Editor written in Rust")
+                            .size(16.0)
+                            .color(CherryBlossomTheme::TEXT_PRIMARY()),
+                    );
+                    ui.add_space(8.0);
+                    ui.label(
+                        egui::RichText::new("Built with 💝 and Rust.")
+                            .size(13.0)
+                            .color(CherryBlossomTheme::TEXT_SECONDARY()),
+                    );
+                    
+                    ui.add_space(24.0);
+                    
+                    ui.hyperlink_to(
+                        egui::RichText::new("🌐  Website")
+                            .size(14.0)
+                            .color(CherryBlossomTheme::ACCENT_PINK()),
+                        "https://asteride.dev",
+                    );
+                    ui.add_space(8.0);
+                    ui.hyperlink_to(
+                        egui::RichText::new("🐙  GitHub")
+                            .size(14.0)
+                            .color(CherryBlossomTheme::ACCENT_PINK()),
+                        "https://github.com/Aster-IDE/AsterIDE",
+                    );
+                    ui.add_space(8.0);
+                    ui.hyperlink_to(
+                        egui::RichText::new("📚  Documentation")
+                            .size(14.0)
+                            .color(CherryBlossomTheme::ACCENT_PINK()),
+                        "https://docs.asteride.dev",
+                    );
+                    
+                    ui.add_space(24.0);
+                    ui.separator();
+                    ui.add_space(16.0);
+                    
+                    ui.hyperlink_to(
+                        egui::RichText::new("© 2026 AsterIDE. This software follows the principles of the Free Software Foundation.")
+                            .size(12.0)
+                            .color(CherryBlossomTheme::TEXT_MUTED()),
+                        "https://www.fsf.org",
+                    );
+                    ui.add_space(4.0);
+                    ui.label(
+                        egui::RichText::new("Licensed under GLPv3 LICENSE")
+                            .size(12.0)
+                            .color(CherryBlossomTheme::TEXT_MUTED()),
+                    );
+                    
+                    ui.add_space(20.0);
+                });
+            });
     }
 
     fn cozy_row(
