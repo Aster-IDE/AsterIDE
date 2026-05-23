@@ -667,7 +667,7 @@ impl AsterIDE {
 
         let _visuals = ui.style().interact(&response);
         let bg_color = if active {
-            CherryBlossomTheme::BG_LIGHTER()
+            CherryBlossomTheme::BG_MID()
         } else if response.hovered() {
             CherryBlossomTheme::BG_LIGHT()
         } else {
@@ -676,15 +676,17 @@ impl AsterIDE {
 
         let fg_color = if active {
             CherryBlossomTheme::ACCENT_PINK()
+        } else if response.hovered() {
+            CherryBlossomTheme::TEXT_PRIMARY()
         } else {
             CherryBlossomTheme::TEXT_SECONDARY()
         };
 
-        ui.painter().rect_filled(rect, 4.0, bg_color);
+        ui.painter().rect_filled(rect, 6.0, bg_color);
 
         let galley = ui.painter().layout(
             icon.to_string(),
-            egui::FontId::new(20.0, egui::FontFamily::Proportional),
+            egui::FontId::new(22.0, egui::FontFamily::Proportional),
             fg_color,
             size.x,
         );
@@ -753,19 +755,64 @@ impl AsterIDE {
             ui.heading(heading_text);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let button_size = egui::vec2(20.0, 20.0);
+                let button_fill = CherryBlossomTheme::BG_LIGHT();
+                let button_stroke = egui::Stroke::new(1.0, CherryBlossomTheme::BORDER_PINK());
+                let text_color = CherryBlossomTheme::TEXT_PRIMARY();
 
-                if ui.add_sized(button_size, egui::Button::new("⬇")).clicked() {
+                if ui
+                    .add_sized(
+                        button_size,
+                        egui::Button::new(
+                            egui::RichText::new("⬇")
+                                .color(text_color)
+                                .size(14.0)
+                        )
+                        .fill(button_fill)
+                        .stroke(button_stroke)
+                    )
+                    .clicked()
+                {
                     self.expanded_folders.clear();
                 }
-                if ui.add_sized(button_size, egui::Button::new("🔄")).clicked() {}
                 if ui
-                    .add_sized(button_size, egui::Button::new("📁+"))
+                    .add_sized(
+                        button_size,
+                        egui::Button::new(
+                            egui::RichText::new("🔄")
+                                .color(text_color)
+                                .size(14.0)
+                        )
+                        .fill(button_fill)
+                        .stroke(button_stroke)
+                    )
+                    .clicked()
+                {}
+                if ui
+                    .add_sized(
+                        button_size,
+                        egui::Button::new(
+                            egui::RichText::new("📁+")
+                                .color(text_color)
+                                .size(14.0)
+                        )
+                        .fill(button_fill)
+                        .stroke(button_stroke)
+                    )
                     .clicked()
                 {
                     self.create_new_folder();
                 }
                 if ui
-                    .add_sized(button_size, egui::Button::new("📄+"))
+                    .add_sized(
+                        button_size,
+                        egui::Button::new(
+                            egui::RichText::new("📄+")
+                                .color(text_color)
+                                .size(14.0)
+                        )
+                        .fill(button_fill)
+                        .stroke(button_stroke)
+                    )
                     .clicked()
                 {
                     if self.settings.request_new_tab_with_confirmation() {
@@ -782,7 +829,19 @@ impl AsterIDE {
             } else {
                 ui.label("No folder opened");
                 ui.add_space(10.0);
-                if ui.button("📂 Open Folder").clicked() {
+                let button_fill = CherryBlossomTheme::BG_LIGHT();
+                let button_stroke = egui::Stroke::new(1.0, CherryBlossomTheme::BORDER_PINK());
+                if ui
+                    .add(
+                        egui::Button::new(
+                            egui::RichText::new("📂 Open Folder")
+                                .color(CherryBlossomTheme::TEXT_PRIMARY())
+                        )
+                        .fill(button_fill)
+                        .stroke(button_stroke)
+                    )
+                    .clicked()
+                {
                     self.open_folder_dialog();
                 }
             }
@@ -953,7 +1012,19 @@ impl AsterIDE {
                 ui.style_mut().visuals.widgets.hovered.bg_fill = CherryBlossomTheme::BG_LIGHT();
 
                 if !is_dir {
-                    if ui.button("Open").clicked() {
+                    let button_fill = CherryBlossomTheme::BG_LIGHT();
+                    let button_stroke = egui::Stroke::new(1.0, CherryBlossomTheme::BORDER_PINK());
+                    if ui
+                        .add(
+                            egui::Button::new(
+                                egui::RichText::new("Open")
+                                    .color(CherryBlossomTheme::TEXT_PRIMARY())
+                            )
+                            .fill(button_fill)
+                            .stroke(button_stroke)
+                        )
+                        .clicked()
+                    {
                         if let Ok(content) = std::fs::read_to_string(&path) {
                             if !self.settings.request_file_open_with_confirmation(path.clone(), content.clone()) {
                                 ui.close();
@@ -964,7 +1035,17 @@ impl AsterIDE {
                         }
                         ui.close();
                     }
-                    if ui.button("Open in Background").clicked() {
+                    if ui
+                        .add(
+                            egui::Button::new(
+                                egui::RichText::new("Open in Background")
+                                    .color(CherryBlossomTheme::TEXT_PRIMARY())
+                            )
+                            .fill(button_fill)
+                            .stroke(button_stroke)
+                        )
+                        .clicked()
+                    {
                         if let Ok(content) = std::fs::read_to_string(&path) {
                             if !self.settings.request_file_open_with_confirmation(path.clone(), content.clone()) {
                                 ui.close();
@@ -981,14 +1062,34 @@ impl AsterIDE {
                     let is_pinned = self.settings.pinned_files.contains(&path);
                     
                     if is_pinned {
-                        if ui.button("📌 Unpin File").clicked() {
+                        if ui
+                            .add(
+                                egui::Button::new(
+                                    egui::RichText::new("📌 Unpin File")
+                                        .color(CherryBlossomTheme::TEXT_PRIMARY())
+                                )
+                                .fill(button_fill)
+                                .stroke(button_stroke)
+                            )
+                            .clicked()
+                        {
                             self.settings.pinned_files.retain(|p| p != path);
                             self.settings.save();
                             self.settings.capture_saved_state();
                             ui.close();
                         }
                     } else {
-                        if ui.button("📌 Pin File").clicked() {
+                        if ui
+                            .add(
+                                egui::Button::new(
+                                    egui::RichText::new("📌 Pin File")
+                                        .color(CherryBlossomTheme::TEXT_PRIMARY())
+                                )
+                                .fill(button_fill)
+                                .stroke(button_stroke)
+                            )
+                            .clicked()
+                        {
                             if !self.settings.pinned_files.contains(&path) {
                                 self.settings.pinned_files.push(path.clone());
                                 self.settings.save();
@@ -1001,26 +1102,80 @@ impl AsterIDE {
                 }
 
                 if is_dir {
-                    if ui.button("New File...").clicked() {
+                    let button_fill = CherryBlossomTheme::BG_LIGHT();
+                    let button_stroke = egui::Stroke::new(1.0, CherryBlossomTheme::BORDER_PINK());
+                    if ui
+                        .add(
+                            egui::Button::new(
+                                egui::RichText::new("New File...")
+                                    .color(CherryBlossomTheme::TEXT_PRIMARY())
+                            )
+                            .fill(button_fill)
+                            .stroke(button_stroke)
+                        )
+                        .clicked()
+                    {
                         self.create_new_file_in_folder(path);
                         ui.close();
                     }
-                    if ui.button("New Folder...").clicked() {
+                    if ui
+                        .add(
+                            egui::Button::new(
+                                egui::RichText::new("New Folder...")
+                                    .color(CherryBlossomTheme::TEXT_PRIMARY())
+                            )
+                            .fill(button_fill)
+                            .stroke(button_stroke)
+                        )
+                        .clicked()
+                    {
                         self.create_new_folder_in_folder(path);
                         ui.close();
                     }
                     ui.separator();
                 }
 
-                if ui.button("Copy").clicked() {
+                let button_fill = CherryBlossomTheme::BG_LIGHT();
+                let button_stroke = egui::Stroke::new(1.0, CherryBlossomTheme::BORDER_PINK());
+                if ui
+                    .add(
+                        egui::Button::new(
+                            egui::RichText::new("Copy")
+                                .color(CherryBlossomTheme::TEXT_PRIMARY())
+                        )
+                        .fill(button_fill)
+                        .stroke(button_stroke)
+                    )
+                    .clicked()
+                {
                     ui.ctx().copy_text(name.clone());
                     ui.close();
                 }
-                if ui.button("Copy Path").clicked() {
+                if ui
+                    .add(
+                        egui::Button::new(
+                            egui::RichText::new("Copy Path")
+                                .color(CherryBlossomTheme::TEXT_PRIMARY())
+                        )
+                        .fill(button_fill)
+                        .stroke(button_stroke)
+                    )
+                    .clicked()
+                {
                     ui.ctx().copy_text(path.display().to_string());
                     ui.close();
                 }
-                if ui.button("Copy Relative Path").clicked() {
+                if ui
+                    .add(
+                        egui::Button::new(
+                            egui::RichText::new("Copy Relative Path")
+                                .color(CherryBlossomTheme::TEXT_PRIMARY())
+                        )
+                        .fill(button_fill)
+                        .stroke(button_stroke)
+                    )
+                    .clicked()
+                {
                     if let Some(folder) = &self.opened_folder {
                         if let Ok(rel_path) = path.strip_prefix(folder) {
                             ui.ctx().copy_text(rel_path.display().to_string());
@@ -1034,11 +1189,31 @@ impl AsterIDE {
                 }
                 ui.separator();
 
-                if ui.button("Rename...").clicked() {
+                if ui
+                    .add(
+                        egui::Button::new(
+                            egui::RichText::new("Rename...")
+                                .color(CherryBlossomTheme::TEXT_PRIMARY())
+                        )
+                        .fill(button_fill)
+                        .stroke(button_stroke)
+                    )
+                    .clicked()
+                {
                     self.rename_path(path.clone());
                     ui.close();
                 }
-                if ui.button("Delete...").clicked() {
+                if ui
+                    .add(
+                        egui::Button::new(
+                            egui::RichText::new("Delete...")
+                                .color(CherryBlossomTheme::TEXT_PRIMARY())
+                        )
+                        .fill(button_fill)
+                        .stroke(button_stroke)
+                    )
+                    .clicked()
+                {
                     self.delete_path(path.clone());
                     ui.close();
                 }
@@ -1654,57 +1829,61 @@ impl AsterIDE {
         }
 
         egui::Panel::bottom("status_bar")
-            .exact_size(22.0)
+            .exact_size(26.0)
+            .frame(egui::Frame::none().fill(CherryBlossomTheme::BG_MID()))
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.set_width(ui.available_width());
+                    ui.add_space(12.0);
 
                     ui.label(
                         egui::RichText::new(&self.status_message)
-                            .size(11.0)
+                            .size(12.0)
                             .color(CherryBlossomTheme::TEXT_SECONDARY()),
                     );
 
-                    ui.add_space(ui.available_width() - 250.0);
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.add_space(12.0);
 
-                    if let Some(tab) = self.tabs.active_tab() {
-                        ui.label(
-                            egui::RichText::new(format!("{} Ln, Col {}", 1, 1))
-                                .size(11.0)
-                                .color(CherryBlossomTheme::TEXT_MUTED()),
-                        );
-
-                        ui.add_space(15.0);
-
-                        let indent_text = if self.settings.use_spaces {
-                            format!("Spaces: {}", self.settings.tab_size)
-                        } else {
-                            "Tab Size".to_string()
-                        };
-                        ui.label(
-                            egui::RichText::new(indent_text)
-                                .size(11.0)
-                                .color(CherryBlossomTheme::TEXT_MUTED()),
-                        );
-
-                        ui.add_space(15.0);
-
-                        ui.label(
-                            egui::RichText::new("UTF-8")
-                                .size(11.0)
-                                .color(CherryBlossomTheme::TEXT_MUTED()),
-                        );
-
-                        ui.add_space(15.0);
-
-                        if tab.is_modified {
+                        if let Some(tab) = self.tabs.active_tab() {
                             ui.label(
-                                egui::RichText::new("● Modified")
-                                    .size(11.0)
-                                    .color(CherryBlossomTheme::ACCENT_HOT()),
+                                egui::RichText::new(format!("{} Ln, Col {}", 1, 1))
+                                    .size(12.0)
+                                    .color(CherryBlossomTheme::TEXT_MUTED()),
                             );
+
+                            ui.add_space(16.0);
+
+                            let indent_text = if self.settings.use_spaces {
+                                format!("Spaces: {}", self.settings.tab_size)
+                            } else {
+                                "Tab Size".to_string()
+                            };
+                            ui.label(
+                                egui::RichText::new(indent_text)
+                                    .size(12.0)
+                                    .color(CherryBlossomTheme::TEXT_MUTED()),
+                            );
+
+                            ui.add_space(16.0);
+
+                            ui.label(
+                                egui::RichText::new("UTF-8")
+                                    .size(12.0)
+                                    .color(CherryBlossomTheme::TEXT_MUTED()),
+                            );
+
+                            ui.add_space(16.0);
+
+                            if tab.is_modified {
+                                ui.label(
+                                    egui::RichText::new("● Modified")
+                                        .size(12.0)
+                                        .color(CherryBlossomTheme::ACCENT_HOT()),
+                                );
+                            }
                         }
-                    }
+                    });
                 });
             });
 
