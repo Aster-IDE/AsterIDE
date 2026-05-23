@@ -663,8 +663,8 @@ impl Settings {
         ui.horizontal(|ui| {
             ui.add_space(6.0);
 
-            let sidebar_width = 140.0;
-            let item_height = 36.0;
+            let sidebar_width = 180.0;
+            let item_height = 40.0;
             let corner_radius = self.corner_roundness;
 
             ui.allocate_ui_with_layout(
@@ -672,23 +672,23 @@ impl Settings {
                 egui::Layout::top_down(egui::Align::Min),
                 |ui| {
                     ui.set_width(sidebar_width);
-                    ui.add_space(8.0);
+                    ui.add_space(12.0);
 
-                    let categories: Vec<SettingsCategory> = vec![
-                        SettingsCategory::About,
-                        SettingsCategory::Appearance,
-                        SettingsCategory::Editor,
-                        SettingsCategory::Files,
-                        SettingsCategory::Keyboard,
-                        SettingsCategory::Search,
-                        SettingsCategory::Workbench,
+                    let categories: Vec<(SettingsCategory, &'static str)> = vec![
+                        (SettingsCategory::About, "ℹ"),
+                        (SettingsCategory::Appearance, "🎨"),
+                        (SettingsCategory::Editor, "📝"),
+                        (SettingsCategory::Files, "📁"),
+                        (SettingsCategory::Keyboard, "⌨"),
+                        (SettingsCategory::Search, "🔍"),
+                        (SettingsCategory::Workbench, "🖥"),
                     ];
 
-                    for category in categories {
+                    for (category, icon) in categories {
                         let is_selected = self.selected_category == category;
 
                         let (rect, response) = ui.allocate_exact_size(
-                            egui::vec2(sidebar_width - 8.0, item_height),
+                            egui::vec2(sidebar_width - 12.0, item_height),
                             egui::Sense::click(),
                         );
 
@@ -703,30 +703,39 @@ impl Settings {
                         ui.painter().rect_filled(rect, corner_radius, bg_color);
 
                         if is_selected {
-                            let indicator_margin = corner_radius.clamp(4.0, 10.0);
+                            let indicator_margin = 4.0;
                             let indicator_height = item_height - (indicator_margin * 2.0);
-                            let indicator_width = (corner_radius * 0.4).clamp(3.0, 6.0);
+                            let indicator_width = 3.0;
                             let indicator_rect = egui::Rect::from_min_size(
-                                rect.left_top() + egui::vec2(indicator_margin * 0.5, indicator_margin),
+                                rect.left_top() + egui::vec2(0.0, indicator_margin),
                                 egui::vec2(indicator_width, indicator_height),
                             );
-                            ui.painter().rect_filled(indicator_rect, corner_radius * 0.6, theme::CherryBlossomTheme::ACCENT_PINK());
+                            ui.painter().rect_filled(indicator_rect, 1.5, theme::CherryBlossomTheme::ACCENT_PINK());
                         }
 
-                        let text = format!("{}", category.name());
+                        let text = category.name();
                         let text_color = if is_selected {
                             theme::CherryBlossomTheme::TEXT_PRIMARY()
                         } else {
                             theme::CherryBlossomTheme::TEXT_SECONDARY()
                         };
 
-                        let text_x = if is_selected { 16.0 } else { 12.0 };
+                        let icon_size = 20.0;
+                        let icon_x = 12.0;
+                        ui.painter().text(
+                            rect.left_center() + egui::vec2(icon_x, 0.0),
+                            egui::Align2::LEFT_CENTER,
+                            icon,
+                            egui::FontId::new(icon_size, egui::FontFamily::Proportional),
+                            text_color,
+                        );
 
+                        let text_x = 42.0;
                         ui.painter().text(
                             rect.left_center() + egui::vec2(text_x, 0.0),
                             egui::Align2::LEFT_CENTER,
                             text,
-                            egui::FontId::new(14.0, egui::FontFamily::Proportional),
+                            egui::FontId::new(13.0, egui::FontFamily::Proportional),
                             text_color,
                         );
 
@@ -739,10 +748,10 @@ impl Settings {
                 },
             );
 
-            ui.add_space(4.0);
+            ui.add_space(8.0);
 
             ui.separator();
-            ui.add_space(4.0);
+            ui.add_space(8.0);
 
             let has_search = !self.search_query.is_empty();
             ui.allocate_ui_with_layout(
@@ -783,37 +792,73 @@ impl Settings {
     }
 
     fn count_settings(&self) -> usize {
-        16
+        let mut count = 0;
+        
+        count += 22;
+        
+        count += 8;
+        
+        count += 10;
+        
+        count += 7;
+        
+        count += 5;
+        
+        count += 8;
+        
+        count
     }
 
     fn count_matching_settings(&self, query: &str) -> usize {
         let query = query.to_lowercase();
         let mut count = 0;
 
-        let setting_names = [
-            "show line numbers",
-            "word wrap",
-            "show whitespace",
-            "font size",
-            "tab size",
-            "use spaces",
-            "vim mode",
-            "auto save",
-            "auto save interval",
-            "sidebar",
-            "status bar",
-            "ignore directories",
-            "ignored directories",
-            "auto-search threshold",
-            "highlight current line",
-            "auto indent",
-            "scroll beyond last line",
-            "minimap",
+        let editor_settings = [
+            "show line numbers", "word wrap", "font size", "font family", "tab size", "use spaces",
+            "show whitespace", "show indent guides", "vim mode", "auto save", "auto save interval",
+            "auto save on focus lost", "highlight current line", "highlight matching brackets",
+            "auto indent", "auto close brackets", "auto close quotes", "scroll beyond last line",
+            "minimap", "line height", "cursor blinking", "cursor style",
         ];
 
-        for name in setting_names {
-            if name.contains(&query) {
-                count += 1;
+        let appearance_settings = [
+            "sidebar", "status bar", "activity bar", "corner roundness", "theme family",
+            "theme variant", "custom background color", "custom accent color", "window opacity",
+            "animations enabled", "font smoothing",
+        ];
+
+        let workbench_settings = [
+            "panel size", "panel position", "auto hide panel", "show open editors", "show explorer",
+            "show search", "show git", "show extensions", "compact mode",
+        ];
+
+        let search_settings = [
+            "search ignore directories enabled", "search ignored directories", "search min chars",
+            "search case sensitive", "search whole word", "search use regex", "search include hidden",
+            "search follow symlinks",
+        ];
+
+        let keyboard_settings = [
+            "keymap scheme", "vim leader key", "multi cursor enabled", "bracket pair colorization",
+            "suggest snippets", "quick suggestions",
+        ];
+
+        let files_settings = [
+            "recent files limit", "recent projects limit", "auto detect indentation",
+            "trim trailing whitespace", "insert final newline", "trim auto whitespace",
+            "default file encoding", "auto reload files", "confirm before save",
+        ];
+
+        let all_settings: Vec<&[&str]> = vec![
+            &editor_settings, &appearance_settings, &workbench_settings,
+            &search_settings, &keyboard_settings, &files_settings,
+        ];
+
+        for settings in all_settings {
+            for name in settings {
+                if name.to_lowercase().contains(&query) {
+                    count += 1;
+                }
             }
         }
 
