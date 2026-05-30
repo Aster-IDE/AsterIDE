@@ -104,6 +104,7 @@ pub struct Settings {
     pub default_file_encoding: String,
     pub auto_reload_files: bool,
     pub confirm_before_save: bool,
+    pub tree_spacing: f32,
     
     #[serde(skip)]
     pub new_file_ext_input: String,
@@ -205,6 +206,7 @@ impl Default for Settings {
             default_file_encoding: "utf8".to_string(),
             auto_reload_files: true,
             confirm_before_save: false,
+            tree_spacing: 4.0,
             
             new_file_ext_input: String::new(),
             new_file_lang_input: String::new(),
@@ -316,6 +318,7 @@ impl Settings {
                 || self.default_file_encoding != saved.default_file_encoding
                 || self.auto_reload_files != saved.auto_reload_files
                 || self.confirm_before_save != saved.confirm_before_save
+                || self.tree_spacing != saved.tree_spacing
                 || self.auto_detect_indentation != saved.auto_detect_indentation
                 || self.trim_trailing_whitespace != saved.trim_trailing_whitespace
                 || self.insert_final_newline != saved.insert_final_newline
@@ -366,6 +369,7 @@ impl Settings {
             self.default_file_encoding = saved.default_file_encoding.clone();
             self.auto_reload_files = saved.auto_reload_files;
             self.confirm_before_save = saved.confirm_before_save;
+            self.tree_spacing = saved.tree_spacing;
             self.auto_detect_indentation = saved.auto_detect_indentation;
             self.trim_trailing_whitespace = saved.trim_trailing_whitespace;
             self.insert_final_newline = saved.insert_final_newline;
@@ -1644,6 +1648,26 @@ impl Settings {
                     "Show confirmation dialog before saving",
                     |ui, settings| {
                         ui.checkbox(&mut settings.confirm_before_save, "");
+                    },
+                );
+            });
+            ui.add_space(12.0);
+        }
+
+        if !has_search || self.matches_search(&query, &["tree", "spacing", "compact", "explorer"]) {
+            self.setting_card(ui, "Explorer Tree", |ui, settings| {
+                settings.cozy_row_filtered(
+                    ui,
+                    has_search,
+                    &query,
+                    "Tree Spacing",
+                    "Spacing between items in the file tree",
+                    |ui, settings| {
+                        ui.add(
+                            egui::Slider::new(&mut settings.tree_spacing, -8.0..=16.0)
+                                .show_value(true)
+                                .text("px"),
+                        );
                     },
                 );
             });
