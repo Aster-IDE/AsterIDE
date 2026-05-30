@@ -15,14 +15,7 @@ jobs:
         run: nix develop -c just create-mac-release
       - name: Remove quarantine from artifacts
         run: |
-          xattr -rd com.apple.quarantine build/AsterIDE.dmg 2>/dev/null || true
           xattr -rd com.apple.quarantine build/AsterIDE.pkg 2>/dev/null || true
-      - name: Upload macOS DMG artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: asteride-macos-dmg-${{ github.sha }}
-          path: build/AsterIDE.dmg
-          if-no-files-found: error
       - name: Upload macOS PKG artifact
         uses: actions/upload-artifact@v6
         with:
