@@ -27,3 +27,11 @@ create-mac-dmg:
     rm -rf "./{{ build_dir }}"
     mkdir -p "./{{ build_dir }}"
     mv ./AsterIDE.dmg "./{{ build_dir }}/AsterIDE.dmg"
+
+create-mac-pkg:
+    @just build-nix
+    ./scripts/macos/build-pkg.sh
+
+create-mac-release:
+    @just create-mac-dmg
+    ./scripts/macos/build-pkg.sh
