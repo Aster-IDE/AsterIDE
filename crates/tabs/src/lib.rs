@@ -90,7 +90,7 @@ impl TabManager {
 
         let tab = Tab {
             id,
-            name: "Settings".to_string(),
+            name: "AsterIDE::Settings".to_string(),
             path: None,
             editor: Editor::new(),
             is_modified: false,
@@ -114,7 +114,7 @@ impl TabManager {
 
         let tab = Tab {
             id,
-            name: "Search Results".to_string(),
+            name: "AsterIDE::Search".to_string(),
             path: None,
             editor: Editor::new(),
             is_modified: false,
