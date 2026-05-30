@@ -111,11 +111,6 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download macOS DMG artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: asteride-macos-dmg-${{ github.sha }}
-          path: release
       - name: Download macOS PKG artifact
         uses: actions/download-artifact@v4
         with:
@@ -137,7 +132,6 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           draft: true
           files: |
-            release/AsterIDE.dmg
             release/AsterIDE.pkg
             release/asteride-freebsd
             release/asteride.exe
