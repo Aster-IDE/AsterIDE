@@ -17,12 +17,18 @@ jobs:
         run: |
           xattr -rd com.apple.quarantine build/AsterIDE.dmg 2>/dev/null || true
           xattr -rd com.apple.quarantine build/AsterIDE.pkg 2>/dev/null || true
-      - uses: actions/upload-artifact@v6
+      - name: Upload macOS DMG artifact
+        uses: actions/upload-artifact@v6
         with:
-          name: asteride-macos-${{ github.sha }}
-          path: |
-            build/AsterIDE.dmg
-            build/AsterIDE.pkg
+          name: asteride-macos-dmg-${{ github.sha }}
+          path: build/AsterIDE.dmg
+          if-no-files-found: error
+      - name: Upload macOS PKG artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: asteride-macos-pkg-${{ github.sha }}
+          path: build/AsterIDE.pkg
+          if-no-files-found: error
 
   build-freebsd:
     runs-on: ubuntu-latest
@@ -112,10 +118,15 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download macOS artifact
+      - name: Download macOS DMG artifact
         uses: actions/download-artifact@v4
         with:
-          name: asteride-macos-${{ github.sha }}
+          name: asteride-macos-dmg-${{ github.sha }}
+          path: release
+      - name: Download macOS PKG artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: asteride-macos-pkg-${{ github.sha }}
           path: release
       - name: Download FreeBSD artifact
         uses: actions/download-artifact@v4
