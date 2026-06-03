@@ -47,7 +47,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
+          sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev rpm
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
@@ -80,19 +80,18 @@ jobs:
           
           cat > deb-package/DEBIAN/control << EOF
           Package: asteride
-          Version: 1.0.0
+          Version: 1.6.0
           Section: editors
           Priority: optional
           Architecture: amd64
           Maintainer: AsterIDE
-          Description: A Simple Text Editor written in Rust
-           AsterIDE is a modern text editor built with Rust and egui.
+          Description: A Simple Text Editor written in Rust.
           EOF
           
           cat > deb-package/usr/share/applications/asteride.desktop << EOF
           [Desktop Entry]
           Name=AsterIDE
-          Comment=A Simple Text Editor written in Rust
+          Comment=A Simple Text Editor written in Rust.
           Exec=/usr/local/bin/asteride
           Icon=asteride
           Type=Application
@@ -100,10 +99,67 @@ jobs:
           EOF
           
           dpkg-deb --build deb-package build/AsterIDE.deb
+      - name: Create .rpm package
+        run: |
+          mkdir -p rpm-package/BUILD
+          mkdir -p rpm-package/RPMS
+          mkdir -p rpm-package/SOURCES
+          mkdir -p rpm-package/SPECS
+          mkdir -p rpm-package/SRPMS
+          
+          cp build/asteride-linux rpm-package/SOURCES/asteride
+          
+          cat > rpm-package/SPECS/asteride.spec << EOF
+          Name: asteride
+          Version: 1.6.0
+          Release: 1%{?dist}
+          Summary: A Simple Text Editor written in Rust.
+          License: MIT
+          URL: https://github.com/Aster-IDE/AsterIDE
+          Source0: asteride
+          
+          %description
+          A Simpler Text Editor written in Rust.
+          
+          %prep
+          %build
+          
+          %install
+          mkdir -p %{buildroot}/usr/local/bin
+          cp %{SOURCE0} %{buildroot}/usr/local/bin/asteride
+          chmod +x %{buildroot}/usr/local/bin/asteride
+          
+          mkdir -p %{buildroot}/usr/share/applications
+          cat > %{buildroot}/usr/share/applications/asteride.desktop << DESKTOPEOF
+          [Desktop Entry]
+          Name=AsterIDE
+          Comment=A Simple Text Editor written in Rust.
+          Exec=/usr/local/bin/asteride
+          Icon=asteride
+          Type=Application
+          Categories=Utility;TextEditor;
+          DESKTOPEOF
+          
+          %files
+          /usr/local/bin/asteride
+          /usr/share/applications/asteride.desktop
+          
+          %changelog
+          * $(date +'%a %b %d %Y') AsterIDE <asteride@example.com> - 1.6.0-1
+          - Initial package
+          EOF
+          
+          rpmbuild --define "_topdir $(pwd)/rpm-package" -ba rpm-package/SPECS/asteride.spec
+          
+          cp rpm-package/RPMS/x86_64/asteride-1.6.0-1.x86_64.rpm build/AsterIDE.rpm
       - uses: actions/upload-artifact@v6
         with:
           name: asteride-linux-deb-${{ github.sha }}
           path: build/AsterIDE.deb
+      - uses: actions/upload-artifact@v6
+        with:
+          name: asteride-linux-rpm-${{ github.sha }}
+          path: build/AsterIDE.rpm
 
   build-freebsd:
     runs-on: ubuntu-latest
@@ -208,6 +264,11 @@ jobs:
         with:
           name: asteride-linux-deb-${{ github.sha }}
           path: release
+      - name: Download Linux RPM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: asteride-linux-rpm-${{ github.sha }}
+          path: release
       - name: Download FreeBSD artifact
         uses: actions/download-artifact@v4
         with:
@@ -227,6 +288,7 @@ jobs:
             release/AsterIDE.dmg
             release/AsterIDE.pkg
             release/AsterIDE.deb
+            release/AsterIDE.rpm
             release/asteride-freebsd
             release/asteride.exe
           name: AsterIDE ${{ github.ref_name }}
