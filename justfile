@@ -12,5 +12,9 @@ create-mac-pkg:
     @just build-nix
     ./scripts/macos/build-pkg.sh
 
+create-mac-dmg:
+    @just build-nix
+    ./scripts/macos/build-dmg.sh
+
 create-mac-release:
-    @just create-mac-pkg
+    @just create-mac-dmg

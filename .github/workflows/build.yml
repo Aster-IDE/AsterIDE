@@ -12,16 +12,89 @@ jobs:
           fetch-depth: 0
       - uses: DeterminateSystems/nix-installer-action@v14
       - name: Build and package
-        run: nix develop -c just create-mac-release
+        run: nix develop -c just create-mac-dmg
       - name: Remove quarantine from artifacts
         run: |
-          xattr -rd com.apple.quarantine build/AsterIDE.pkg 2>/dev/null || true
-      - name: Upload macOS PKG artifact
+          xattr -rd com.apple.quarantine build/AsterIDE.dmg 2>/dev/null || true
+      - name: Upload macOS DMG artifact
         uses: actions/upload-artifact@v6
         with:
-          name: asteride-macos-pkg-${{ github.sha }}
-          path: build/AsterIDE.pkg
+          name: asteride-macos-dmg-${{ github.sha }}
+          path: build/AsterIDE.dmg
           if-no-files-found: error
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+          fetch-depth: 0
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: x86_64-unknown-linux-gnu
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build Linux binary
+        run: |
+          cargo build --release --target x86_64-unknown-linux-gnu
+          mkdir -p build
+          if [ -f target/x86_64-unknown-linux-gnu/release/asteride ]; then
+            cp target/x86_64-unknown-linux-gnu/release/asteride build/asteride-linux
+          else
+            echo "Binary not found"
+            ls -la target/x86_64-unknown-linux-gnu/release/
+            exit 1
+          fi
+      - name: Create .deb package
+        run: |
+          mkdir -p deb-package/DEBIAN
+          mkdir -p deb-package/usr/local/bin
+          mkdir -p deb-package/usr/share/applications
+          mkdir -p deb-package/usr/share/icons/hicolor/256x256/apps
+          
+          cp build/asteride-linux deb-package/usr/local/bin/asteride
+          chmod +x deb-package/usr/local/bin/asteride
+          
+          cat > deb-package/DEBIAN/control << EOF
+          Package: asteride
+          Version: 1.0.0
+          Section: editors
+          Priority: optional
+          Architecture: amd64
+          Maintainer: AsterIDE
+          Description: A Simple Text Editor written in Rust
+           AsterIDE is a modern text editor built with Rust and egui.
+          EOF
+          
+          cat > deb-package/usr/share/applications/asteride.desktop << EOF
+          [Desktop Entry]
+          Name=AsterIDE
+          Comment=A Simple Text Editor written in Rust
+          Exec=/usr/local/bin/asteride
+          Icon=asteride
+          Type=Application
+          Categories=Utility;TextEditor;
+          EOF
+          
+          dpkg-deb --build deb-package build/AsterIDE.deb
+      - uses: actions/upload-artifact@v6
+        with:
+          name: asteride-linux-deb-${{ github.sha }}
+          path: build/AsterIDE.deb
 
   build-freebsd:
     runs-on: ubuntu-latest
@@ -105,16 +178,21 @@ jobs:
           path: build/asteride.exe
   
   release:
-    needs: [build-macos, build-freebsd, build-windows]
+    needs: [build-macos, build-linux, build-freebsd, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
     steps:
-      - name: Download macOS PKG artifact
+      - name: Download macOS DMG artifact
         uses: actions/download-artifact@v4
         with:
-          name: asteride-macos-pkg-${{ github.sha }}
+          name: asteride-macos-dmg-${{ github.sha }}
+          path: release
+      - name: Download Linux DEB artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: asteride-linux-deb-${{ github.sha }}
           path: release
       - name: Download FreeBSD artifact
         uses: actions/download-artifact@v4
@@ -132,7 +210,8 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           draft: true
           files: |
-            release/AsterIDE.pkg
+            release/AsterIDE.dmg
+            release/AsterIDE.deb
             release/asteride-freebsd
             release/asteride.exe
           name: AsterIDE ${{ github.ref_name }}
