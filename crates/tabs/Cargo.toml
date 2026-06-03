@@ -1,6 +1,6 @@
 [package]
 name = "tabs"
-version = "26.06.03"
+version = "1.6.0"
 edition = "2024"
 
 [dependencies]
