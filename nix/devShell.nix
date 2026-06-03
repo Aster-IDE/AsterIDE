@@ -27,7 +27,6 @@
   glib,
   vscode,
   just,
-  create-dmg,
   cargo-bundle
 }:
 mkShell rec {
@@ -62,8 +61,6 @@ mkShell rec {
   ] ++ lib.optionals stdenv.isLinux [
     glib
     vscode
-  ] ++ lib.optionals stdenv.isDarwin [
-    create-dmg
   ];
 
   nativeBuildInputs = [ cargo-bundle ] ++ lib.optionals stdenv.isLinux [

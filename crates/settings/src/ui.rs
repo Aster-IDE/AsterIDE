@@ -10,9 +10,9 @@ pub fn setting_card(
     let card_margin = 16.0;
 
     egui::Frame::group(ui.style())
-        .fill(CherryBlossomTheme::BG_DARK())
+        .fill(CherryBlossomTheme::bg_dark())
         .corner_radius(settings.corner_roundness)
-        .stroke(egui::Stroke::new(1.0, CherryBlossomTheme::BG_LIGHT()))
+        .stroke(egui::Stroke::new(1.0, CherryBlossomTheme::bg_light()))
         .inner_margin(egui::Margin::same(card_margin as i8))
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
@@ -22,7 +22,7 @@ pub fn setting_card(
                     egui::RichText::new(title)
                         .size(14.0)
                         .strong()
-                        .color(CherryBlossomTheme::TEXT_PRIMARY())
+                        .color(CherryBlossomTheme::text_primary())
                 ).selectable(false)
             );
 
@@ -33,7 +33,7 @@ pub fn setting_card(
                     ui.cursor().left_center(),
                     ui.cursor().left_center() + egui::vec2(ui.available_width(), 0.0),
                 ],
-                egui::Stroke::new(1.0, CherryBlossomTheme::BG_LIGHT()),
+                egui::Stroke::new(1.0, CherryBlossomTheme::bg_light()),
             );
             ui.add_space(12.0);
 
@@ -56,14 +56,14 @@ pub fn cozy_row(
                 egui::Label::new(
                     egui::RichText::new(title)
                         .size(13.0)
-                        .color(CherryBlossomTheme::TEXT_PRIMARY())
+                        .color(CherryBlossomTheme::text_primary())
                 ).selectable(false)
             );
             ui.add(
                 egui::Label::new(
                     egui::RichText::new(description)
                         .size(11.0)
-                        .color(CherryBlossomTheme::TEXT_MUTED())
+                        .color(CherryBlossomTheme::text_muted())
                 ).selectable(false)
             );
         });

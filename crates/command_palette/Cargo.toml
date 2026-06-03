@@ -1,6 +1,6 @@
 [package]
 name = "command_palette"
-version = "26.5.29"
+version = "1.6.1"
 edition = "2024"
 
 [dependencies]

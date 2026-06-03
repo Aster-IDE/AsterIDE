@@ -86,7 +86,7 @@ pub fn show_search_tab(ui: &mut egui::Ui, state: &mut SearchState, min_chars: us
             ui.label(
                 egui::RichText::new("🔍")
                     .size(16.0)
-                    .color(theme::CherryBlossomTheme::TEXT_MUTED()),
+                    .color(theme::CherryBlossomTheme::text_muted()),
             );
 
             ui.add_space(8.0);
@@ -113,9 +113,9 @@ pub fn show_search_tab(ui: &mut egui::Ui, state: &mut SearchState, min_chars: us
             ui.add_space(10.0);
 
             let case_color = if state.case_sensitive {
-                theme::CherryBlossomTheme::ACCENT_PINK()
+                theme::CherryBlossomTheme::accent_pink()
             } else {
-                theme::CherryBlossomTheme::TEXT_MUTED()
+                theme::CherryBlossomTheme::text_muted()
             };
             if ui
                 .add(
@@ -128,9 +128,9 @@ pub fn show_search_tab(ui: &mut egui::Ui, state: &mut SearchState, min_chars: us
             }
 
             let word_color = if state.whole_word {
-                theme::CherryBlossomTheme::ACCENT_PINK()
+                theme::CherryBlossomTheme::accent_pink()
             } else {
-                theme::CherryBlossomTheme::TEXT_MUTED()
+                theme::CherryBlossomTheme::text_muted()
             };
             if ui
                 .add(
@@ -143,9 +143,9 @@ pub fn show_search_tab(ui: &mut egui::Ui, state: &mut SearchState, min_chars: us
             }
 
             let regex_color = if state.use_regex {
-                theme::CherryBlossomTheme::ACCENT_PINK()
+                theme::CherryBlossomTheme::accent_pink()
             } else {
-                theme::CherryBlossomTheme::TEXT_MUTED()
+                theme::CherryBlossomTheme::text_muted()
             };
             if ui
                 .add(
@@ -163,7 +163,7 @@ pub fn show_search_tab(ui: &mut egui::Ui, state: &mut SearchState, min_chars: us
             ui.label(
                 egui::RichText::new("↔")
                     .size(16.0)
-                    .color(theme::CherryBlossomTheme::TEXT_MUTED()),
+                    .color(theme::CherryBlossomTheme::text_muted()),
             );
             ui.add_space(8.0);
             ui.add_sized(
@@ -183,10 +183,10 @@ pub fn show_search_tab(ui: &mut egui::Ui, state: &mut SearchState, min_chars: us
                 egui::vec2(80.0, button_height),
                 egui::Button::new(
                     egui::RichText::new("Search")
-                        .color(theme::CherryBlossomTheme::BG_DARKEST())
+                        .color(theme::CherryBlossomTheme::bg_darkest())
                         .strong(),
                 )
-                .fill(theme::CherryBlossomTheme::ACCENT_PINK()),
+                .fill(theme::CherryBlossomTheme::accent_pink()),
             );
             if search_btn.clicked() {
                 ui.ctx().data_mut(|d| {
@@ -213,13 +213,13 @@ pub fn show_search_tab(ui: &mut egui::Ui, state: &mut SearchState, min_chars: us
                 if !state.results.is_empty() {
                     ui.label(
                         egui::RichText::new(format!("{} matches", state.results.len()))
-                            .color(theme::CherryBlossomTheme::TEXT_MUTED())
+                            .color(theme::CherryBlossomTheme::text_muted())
                             .size(12.0),
                     );
                 } else if !state.query.is_empty() {
                     ui.label(
                         egui::RichText::new("No results")
-                            .color(theme::CherryBlossomTheme::TEXT_MUTED())
+                            .color(theme::CherryBlossomTheme::text_muted())
                             .size(12.0),
                     );
                 }
@@ -235,7 +235,7 @@ pub fn show_search_tab(ui: &mut egui::Ui, state: &mut SearchState, min_chars: us
                     ui.centered_and_justified(|ui| {
                         ui.label(
                             egui::RichText::new("Enter a search query to find across open files")
-                                .color(theme::CherryBlossomTheme::TEXT_MUTED())
+                                .color(theme::CherryBlossomTheme::text_muted())
                                 .size(14.0),
                         );
                     });
@@ -250,7 +250,7 @@ pub fn show_search_tab(ui: &mut egui::Ui, state: &mut SearchState, min_chars: us
                             ui.label(egui::RichText::new("📄 ").size(12.0));
                             ui.label(
                                 egui::RichText::new(&result.file_path)
-                                    .color(theme::CherryBlossomTheme::ACCENT_PINK())
+                                    .color(theme::CherryBlossomTheme::accent_pink())
                                     .size(12.0)
                                     .strong(),
                             );
@@ -269,11 +269,11 @@ pub fn show_search_tab(ui: &mut egui::Ui, state: &mut SearchState, min_chars: us
                     );
                     
                     let bg_color = if is_current {
-                        theme::CherryBlossomTheme::BG_LIGHT()
+                        theme::CherryBlossomTheme::bg_light()
                     } else if row_response.hovered() {
-                        theme::CherryBlossomTheme::BG_MID()
+                        theme::CherryBlossomTheme::bg_mid()
                     } else {
-                        theme::CherryBlossomTheme::BG_DARKEST()
+                        theme::CherryBlossomTheme::bg_darkest()
                     };
 
                     egui::Frame::new()
@@ -285,7 +285,7 @@ pub fn show_search_tab(ui: &mut egui::Ui, state: &mut SearchState, min_chars: us
                                     egui::vec2(50.0, 18.0),
                                     egui::Label::new(
                                         egui::RichText::new(format!("{}", result.line))
-                                            .color(theme::CherryBlossomTheme::TEXT_MUTED())
+                                            .color(theme::CherryBlossomTheme::text_muted())
                                             .monospace()
                                             .size(12.0),
                                     ),
@@ -309,18 +309,18 @@ pub fn show_search_tab(ui: &mut egui::Ui, state: &mut SearchState, min_chars: us
                                 ui.horizontal(|ui| {
                                     ui.monospace(
                                         egui::RichText::new(before)
-                                            .color(theme::CherryBlossomTheme::TEXT_SECONDARY())
+                                            .color(theme::CherryBlossomTheme::text_secondary())
                                             .size(12.0),
                                     );
                                     ui.monospace(
                                         egui::RichText::new(matched)
-                                            .color(theme::CherryBlossomTheme::ACCENT_HOT())
+                                            .color(theme::CherryBlossomTheme::accent_hot())
                                             .strong()
                                             .size(12.0),
                                     );
                                     ui.monospace(
                                         egui::RichText::new(after)
-                                            .color(theme::CherryBlossomTheme::TEXT_SECONDARY())
+                                            .color(theme::CherryBlossomTheme::text_secondary())
                                             .size(12.0),
                                     );
                                 });
@@ -353,12 +353,12 @@ pub fn show_search_button(ui: &mut egui::Ui) {
         ui.label(
             egui::RichText::new("🔍")
                 .size(32.0)
-                .color(theme::CherryBlossomTheme::TEXT_MUTED()),
+                .color(theme::CherryBlossomTheme::text_muted()),
         );
         ui.add_space(10.0);
         ui.label(
             egui::RichText::new("Click the search icon above\nor press Ctrl+Shift+F")
-                .color(theme::CherryBlossomTheme::TEXT_MUTED())
+                .color(theme::CherryBlossomTheme::text_muted())
                 .size(11.0),
         );
     });

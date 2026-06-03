@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::fs;
 
 pub mod categories;
 pub mod ui;
@@ -427,9 +426,9 @@ impl Settings {
             });
 
         let modal_frame = egui::Frame::new()
-            .fill(theme::CherryBlossomTheme::BG_DARKEST())
+            .fill(theme::CherryBlossomTheme::bg_darkest())
             .corner_radius(12.0)
-            .stroke(egui::Stroke::new(1.0, theme::CherryBlossomTheme::BG_LIGHT()))
+            .stroke(egui::Stroke::new(1.0, theme::CherryBlossomTheme::bg_light()))
             .inner_margin(egui::Margin::symmetric(32, 28))
             .shadow(egui::epaint::Shadow {
                 offset: [0, 8],
@@ -453,7 +452,7 @@ impl Settings {
                             egui::RichText::new("Unsaved Changes")
                                 .size(18.0)
                                 .strong()
-                                .color(theme::CherryBlossomTheme::TEXT_PRIMARY())
+                                .color(theme::CherryBlossomTheme::text_primary())
                         ).selectable(false)
                     );
                     ui.add_space(12.0);
@@ -461,14 +460,14 @@ impl Settings {
                         egui::Label::new(
                             egui::RichText::new("You have unsaved settings changes.")
                                 .size(14.0)
-                                .color(theme::CherryBlossomTheme::TEXT_SECONDARY())
+                                .color(theme::CherryBlossomTheme::text_secondary())
                         ).selectable(false)
                     );
                     ui.add(
                         egui::Label::new(
                             egui::RichText::new("Discard them?")
                                 .size(14.0)
-                                .color(theme::CherryBlossomTheme::TEXT_SECONDARY())
+                                .color(theme::CherryBlossomTheme::text_secondary())
                         ).selectable(false)
                     );
                     ui.add_space(24.0);
@@ -482,10 +481,10 @@ impl Settings {
                                 egui::RichText::new("Discard")
                                     .size(14.0)
                                     .strong()
-                                    .color(theme::CherryBlossomTheme::BG_DARKEST()),
+                                    .color(theme::CherryBlossomTheme::bg_darkest()),
                             )
                             .corner_radius(8.0)
-                            .fill(theme::CherryBlossomTheme::ACCENT_PINK()),
+                            .fill(theme::CherryBlossomTheme::accent_pink()),
                         );
                         if discard_btn.clicked() {
                             self.discard_changes();
@@ -503,10 +502,10 @@ impl Settings {
                             egui::Button::new(
                                 egui::RichText::new("Cancel")
                                     .size(14.0)
-                                    .color(theme::CherryBlossomTheme::TEXT_PRIMARY()),
+                                    .color(theme::CherryBlossomTheme::text_primary()),
                             )
                             .corner_radius(8.0)
-                            .fill(theme::CherryBlossomTheme::BG_MID()),
+                            .fill(theme::CherryBlossomTheme::bg_mid()),
                         );
                         if cancel_btn.clicked() {
                             self.confirm_discard_open = false;
@@ -565,8 +564,6 @@ impl Settings {
     }
 
     pub fn show_content(&mut self, ui: &mut egui::Ui) {
-        use theme::CherryBlossomTheme;
-
         let available_height = ui.available_height();
 
         ui.horizontal(|ui| {
@@ -578,7 +575,7 @@ impl Settings {
                     egui::RichText::new(self.selected_category.name())
                         .size(18.0)
                         .strong()
-                        .color(theme::CherryBlossomTheme::TEXT_PRIMARY())
+                        .color(theme::CherryBlossomTheme::text_primary())
                 ).selectable(false)
             );
 
@@ -593,10 +590,10 @@ impl Settings {
                             egui::RichText::new("Apply Changes")
                                 .size(13.0)
                                 .strong()
-                                .color(theme::CherryBlossomTheme::BG_DARKEST()),
+                                .color(theme::CherryBlossomTheme::bg_darkest()),
                         )
                         .corner_radius(btn_rounding)
-                        .fill(theme::CherryBlossomTheme::ACCENT_PINK()),
+                        .fill(theme::CherryBlossomTheme::accent_pink()),
                     );
                     if apply_btn.clicked() {
                         self.apply_changes_clicked = true;
@@ -609,10 +606,10 @@ impl Settings {
                     egui::Button::new(
                         egui::RichText::new("Edit as JSON")
                             .size(13.0)
-                            .color(theme::CherryBlossomTheme::TEXT_PRIMARY()),
+                            .color(theme::CherryBlossomTheme::text_primary()),
                     )
                     .corner_radius(btn_rounding)
-                    .fill(theme::CherryBlossomTheme::BG_MID()),
+                    .fill(theme::CherryBlossomTheme::bg_mid()),
                 );
                 if json_btn.clicked() {
                     self.edit_as_json_clicked = true;
@@ -625,10 +622,10 @@ impl Settings {
                     egui::Button::new(
                         egui::RichText::new("Reset Settings")
                             .size(13.0)
-                            .color(theme::CherryBlossomTheme::TEXT_PRIMARY()),
+                            .color(theme::CherryBlossomTheme::text_primary()),
                     )
                     .corner_radius(btn_rounding)
-                    .fill(theme::CherryBlossomTheme::BG_MID()),
+                    .fill(theme::CherryBlossomTheme::bg_mid()),
                 );
                 if reset_btn.clicked() {
                     *self = Self::default();
@@ -647,7 +644,7 @@ impl Settings {
                     egui::Label::new(
                         egui::RichText::new(format!("{} / {} Settings", matches, total_count))
                             .size(12.0)
-                            .color(theme::CherryBlossomTheme::TEXT_MUTED())
+                            .color(theme::CherryBlossomTheme::text_muted())
                     ).selectable(false)
                 );
 
@@ -697,11 +694,11 @@ impl Settings {
                         );
 
                         let bg_color = if is_selected {
-                            theme::CherryBlossomTheme::BG_MID()
+                            theme::CherryBlossomTheme::bg_mid()
                         } else if response.hovered() {
-                            theme::CherryBlossomTheme::BG_LIGHT()
+                            theme::CherryBlossomTheme::bg_light()
                         } else {
-                            theme::CherryBlossomTheme::BG_DARK()
+                            theme::CherryBlossomTheme::bg_dark()
                         };
 
                         ui.painter().rect_filled(rect, corner_radius, bg_color);
@@ -714,14 +711,14 @@ impl Settings {
                                 rect.left_top() + egui::vec2(0.0, indicator_margin),
                                 egui::vec2(indicator_width, indicator_height),
                             );
-                            ui.painter().rect_filled(indicator_rect, 1.5, theme::CherryBlossomTheme::ACCENT_PINK());
+                            ui.painter().rect_filled(indicator_rect, 1.5, theme::CherryBlossomTheme::accent_pink());
                         }
 
                         let text = category.name();
                         let text_color = if is_selected {
-                            theme::CherryBlossomTheme::TEXT_PRIMARY()
+                            theme::CherryBlossomTheme::text_primary()
                         } else {
-                            theme::CherryBlossomTheme::TEXT_SECONDARY()
+                            theme::CherryBlossomTheme::text_secondary()
                         };
 
                         let icon_size = 20.0;
@@ -892,14 +889,12 @@ impl Settings {
         title: &str,
         content: impl FnOnce(&mut egui::Ui, &mut Settings),
     ) {
-        use theme::CherryBlossomTheme;
-
         let card_margin = 16.0;
 
         egui::Frame::group(ui.style())
-            .fill(theme::CherryBlossomTheme::BG_DARK())
+            .fill(theme::CherryBlossomTheme::bg_dark())
             .corner_radius(self.corner_roundness)
-            .stroke(egui::Stroke::new(1.0, theme::CherryBlossomTheme::BG_LIGHT()))
+            .stroke(egui::Stroke::new(1.0, theme::CherryBlossomTheme::bg_light()))
             .inner_margin(egui::Margin::same(card_margin as i8))
             .show(ui, |ui| {
                 ui.set_width(ui.available_width());
@@ -909,7 +904,7 @@ impl Settings {
                         egui::RichText::new(title)
                             .size(14.0)
                             .strong()
-                            .color(theme::CherryBlossomTheme::TEXT_PRIMARY())
+                            .color(theme::CherryBlossomTheme::text_primary())
                     ).selectable(false)
                 );
 
@@ -920,7 +915,7 @@ impl Settings {
                         ui.cursor().left_center(),
                         ui.cursor().left_center() + egui::vec2(ui.available_width(), 0.0),
                     ],
-                    egui::Stroke::new(1.0, theme::CherryBlossomTheme::BG_LIGHT()),
+                    egui::Stroke::new(1.0, theme::CherryBlossomTheme::bg_light()),
                 );
                 ui.add_space(12.0);
 
@@ -932,9 +927,9 @@ impl Settings {
         use theme::CherryBlossomTheme;
 
         egui::Frame::group(ui.style())
-            .fill(CherryBlossomTheme::BG_DARK())
+            .fill(CherryBlossomTheme::bg_dark())
             .corner_radius(self.corner_roundness)
-            .stroke(egui::Stroke::new(1.0, CherryBlossomTheme::BG_LIGHT()))
+            .stroke(egui::Stroke::new(1.0, CherryBlossomTheme::bg_light()))
             .inner_margin(egui::Margin::same(24))
             .show(ui, |ui| {
                 ui.set_width(ui.available_width());
@@ -947,7 +942,7 @@ impl Settings {
                             egui::RichText::new("AsterIDE 🌸")
                                 .size(32.0)
                                 .strong()
-                                .color(CherryBlossomTheme::ACCENT_PINK())
+                                .color(CherryBlossomTheme::accent_pink())
                         ).selectable(false)
                     );
                     ui.add_space(8.0);
@@ -956,7 +951,7 @@ impl Settings {
                         egui::Label::new(
                             egui::RichText::new(format!("AsterIDE v{}", version))
                                 .size(14.0)
-                                .color(CherryBlossomTheme::TEXT_SECONDARY())
+                                .color(CherryBlossomTheme::text_secondary())
                         ).selectable(false)
                     );
                     
@@ -968,7 +963,7 @@ impl Settings {
                         egui::Label::new(
                             egui::RichText::new("A Simple Text Editor written in Rust")
                                 .size(16.0)
-                                .color(CherryBlossomTheme::TEXT_PRIMARY())
+                                .color(CherryBlossomTheme::text_primary())
                         ).selectable(false)
                     );
                     ui.add_space(8.0);
@@ -976,7 +971,7 @@ impl Settings {
                         egui::Label::new(
                             egui::RichText::new("Built with 💝 and Rust.")
                                 .size(13.0)
-                                .color(CherryBlossomTheme::TEXT_SECONDARY())
+                                .color(CherryBlossomTheme::text_secondary())
                         ).selectable(false)
                     );
                     
@@ -985,21 +980,21 @@ impl Settings {
                     ui.hyperlink_to(
                         egui::RichText::new("Website")
                             .size(14.0)
-                            .color(CherryBlossomTheme::ACCENT_PINK()),
+                            .color(CherryBlossomTheme::accent_pink()),
                         "https://asteride.dev",
                     );
                     ui.add_space(8.0);
                     ui.hyperlink_to(
                         egui::RichText::new("GitHub")
                             .size(14.0)
-                            .color(CherryBlossomTheme::ACCENT_PINK()),
+                            .color(CherryBlossomTheme::accent_pink()),
                         "https://github.com/Aster-IDE/AsterIDE",
                     );
                     ui.add_space(8.0);
                     ui.hyperlink_to(
                         egui::RichText::new("Documentation")
                             .size(14.0)
-                            .color(CherryBlossomTheme::ACCENT_PINK()),
+                            .color(CherryBlossomTheme::accent_pink()),
                         "https://docs.asteride.dev",
                     );
                     
@@ -1012,7 +1007,7 @@ impl Settings {
                             egui::RichText::new("Version Information")
                                 .size(14.0)
                                 .strong()
-                                .color(CherryBlossomTheme::TEXT_PRIMARY())
+                                .color(CherryBlossomTheme::text_primary())
                         ).selectable(false)
                     );
                     ui.add_space(8.0);
@@ -1020,21 +1015,21 @@ impl Settings {
                         egui::Label::new(
                             egui::RichText::new(format!("Version: v{}", env!("CARGO_PKG_VERSION")))
                                 .size(12.0)
-                                .color(CherryBlossomTheme::TEXT_SECONDARY())
+                                .color(CherryBlossomTheme::text_secondary())
                         ).selectable(false)
                     );
                     ui.add(
                         egui::Label::new(
                             egui::RichText::new("Build: Release")
                                 .size(12.0)
-                                .color(CherryBlossomTheme::TEXT_SECONDARY())
+                                .color(CherryBlossomTheme::text_secondary())
                         ).selectable(false)
                     );
                     ui.add(
                         egui::Label::new(
                             egui::RichText::new("Rust Edition: 2024")
                                 .size(12.0)
-                                .color(CherryBlossomTheme::TEXT_SECONDARY())
+                                .color(CherryBlossomTheme::text_secondary())
                         ).selectable(false)
                     );
                     
@@ -1047,7 +1042,7 @@ impl Settings {
                             egui::RichText::new("Acknowledgments")
                                 .size(14.0)
                                 .strong()
-                                .color(CherryBlossomTheme::TEXT_PRIMARY())
+                                .color(CherryBlossomTheme::text_primary())
                         ).selectable(false)
                     );
                     ui.add_space(8.0);
@@ -1055,7 +1050,7 @@ impl Settings {
                         egui::Label::new(
                             egui::RichText::new("Built with egui, eframe, and the Rust ecosystem")
                                 .size(12.0)
-                                .color(CherryBlossomTheme::TEXT_SECONDARY())
+                                .color(CherryBlossomTheme::text_secondary())
                         ).selectable(false)
                     );
                     
@@ -1066,7 +1061,7 @@ impl Settings {
                     ui.hyperlink_to(
                         egui::RichText::new("© 2026 AsterIDE. This software follows the principles of the Free Software Foundation.")
                             .size(12.0)
-                            .color(CherryBlossomTheme::TEXT_MUTED()),
+                            .color(CherryBlossomTheme::text_muted()),
                         "https://www.fsf.org",
                     );
                     ui.add_space(4.0);
@@ -1074,7 +1069,7 @@ impl Settings {
                         egui::Label::new(
                             egui::RichText::new("Licensed under GLPv3 LICENSE")
                                 .size(12.0)
-                                .color(CherryBlossomTheme::TEXT_MUTED())
+                                .color(CherryBlossomTheme::text_muted())
                         ).selectable(false)
                     );
                     
@@ -1090,8 +1085,6 @@ impl Settings {
         description: &str,
         control: impl FnOnce(&mut egui::Ui, &mut Settings),
     ) {
-        use theme::CherryBlossomTheme;
-
         ui.horizontal(|ui| {
             ui.set_width(ui.available_width());
 
@@ -1100,14 +1093,14 @@ impl Settings {
                     egui::Label::new(
                         egui::RichText::new(title)
                             .size(13.0)
-                            .color(theme::CherryBlossomTheme::TEXT_PRIMARY())
+                            .color(theme::CherryBlossomTheme::text_primary())
                     ).selectable(false)
                 );
                 ui.add(
                     egui::Label::new(
                         egui::RichText::new(description)
                             .size(11.0)
-                            .color(theme::CherryBlossomTheme::TEXT_MUTED())
+                            .color(theme::CherryBlossomTheme::text_muted())
                     ).selectable(false)
                 );
             });
@@ -1695,7 +1688,7 @@ impl Settings {
         if !has_search || self.matches_search(&query, &["association", "extension", "language", "mapping"]) {
             self.setting_card(ui, "File Associations", |ui, settings| {
                 ui.add(egui::Label::new(egui::RichText::new("Add Association").size(13.0).strong()).selectable(false));
-                ui.add(egui::Label::new(egui::RichText::new("Map file extension to language mode").size(11.0).color(theme::CherryBlossomTheme::TEXT_MUTED())).selectable(false));
+                ui.add(egui::Label::new(egui::RichText::new("Map file extension to language mode").size(11.0).color(theme::CherryBlossomTheme::text_muted())).selectable(false));
                 ui.add_space(8.0);
                 
                 egui::Grid::new("file_assoc_grid").num_columns(2).spacing([8.0, 6.0]).show(ui, |ui| {
