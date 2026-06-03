@@ -8,7 +8,7 @@
 
 rustPlatform.buildRustPackage {
   pname = "asteride";
-  version = "26.5.29";
+  version = "26.06.03";
 
   src = ../.;
 
