@@ -52,14 +52,14 @@ pub fn show_search_settings(settings: &mut Settings, ui: &mut egui::Ui, has_sear
                 egui::Label::new(
                     egui::RichText::new("Ignored patterns")
                         .size(13.0)
-                        .color(CherryBlossomTheme::TEXT_PRIMARY())
+                        .color(CherryBlossomTheme::text_primary())
                 ).selectable(false)
             );
             ui.add(
                 egui::Label::new(
                     egui::RichText::new("Comma-separated, use * for wildcards")
                         .size(11.0)
-                        .color(CherryBlossomTheme::TEXT_MUTED())
+                        .color(CherryBlossomTheme::text_muted())
                 ).selectable(false)
             );
             ui.add_space(4.0);
@@ -72,7 +72,7 @@ pub fn show_search_settings(settings: &mut Settings, ui: &mut egui::Ui, has_sear
                 egui::Label::new(
                     egui::RichText::new("Examples: .git, node_modules, *venv")
                         .size(11.0)
-                        .color(CherryBlossomTheme::TEXT_MUTED())
+                        .color(CherryBlossomTheme::text_muted())
                 ).selectable(false)
             );
             ui.add_space(16.0);
