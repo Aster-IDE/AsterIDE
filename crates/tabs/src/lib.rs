@@ -1,4 +1,4 @@
-use core::editor::Editor;
+use editor::Editor;
 use std::path::PathBuf;
 
 #[derive(PartialEq, Copy, Clone)]
@@ -152,7 +152,7 @@ impl TabManager {
             .unwrap_or_else(|| "untitled".to_string());
 
         let mut editor = Editor::new();
-        editor.buffer = core::buffer::Buffer::from_str(&content);
+        editor.buffer = editor::Buffer::from_str(&content);
 
         let tab = Tab {
             id,

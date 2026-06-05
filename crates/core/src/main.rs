@@ -1982,7 +1982,7 @@ impl AsterIDE {
 
                 if text_changed {
                     if let Some(editor) = self.tabs.current_editor_mut() {
-                        editor.buffer = core::buffer::Buffer::from_str(&new_text);
+                        editor.buffer = editor::Buffer::from_str(&new_text);
                     }
                     if let Some(tab) = self.tabs.active_tab_mut() {
                         tab.is_modified = true;
@@ -2252,7 +2252,7 @@ impl eframe::App for AsterIDE {
                         let content = tab.editor.buffer.content().to_string();
                         let new_content = state.replace_all_in_text(&content);
                         if new_content != content {
-                            tab.editor.buffer = core::buffer::Buffer::from_str(&new_content);
+                            tab.editor.buffer = editor::Buffer::from_str(&new_content);
                             tab.is_modified = true;
                         }
                     }

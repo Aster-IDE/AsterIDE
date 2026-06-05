@@ -252,11 +252,11 @@ dependencies = [
 
 [[package]]
 name = "asteride"
-version = "1.6.0"
+version = "1.6.1"
 dependencies = [
  "command_palette",
- "core",
  "dirs",
+ "editor",
  "eframe",
  "egui",
  "egui_code_editor",
@@ -723,7 +723,7 @@ dependencies = [
 
 [[package]]
 name = "command_palette"
-version = "1.6.0"
+version = "1.6.1"
 dependencies = [
  "egui",
  "theme",
@@ -737,10 +737,6 @@ checksum = "4ca0197aee26d1ae37445ee532fefce43251d24cc7c166799f4d46817f1d3973"
 dependencies = [
  "crossbeam-utils",
 ]
-
-[[package]]
-name = "core"
-version = "1.6.0"
 
 [[package]]
 name = "core-foundation"
@@ -934,6 +930,15 @@ checksum = "137c0ce4ce4152ff7e223a7ce22ee1057cdff61fce0a45c32459c3ccec64868d"
 dependencies = [
  "bytemuck",
  "emath",
+]
+
+[[package]]
+name = "editor"
+version = "1.6.1"
+dependencies = [
+ "eframe",
+ "egui",
+ "egui_code_editor",
 ]
 
 [[package]]
@@ -2037,7 +2042,7 @@ checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 
 [[package]]
 name = "lsp"
-version = "1.6.0"
+version = "1.6.1"
 
 [[package]]
 name = "malloc_buf"
@@ -2729,7 +2734,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "plugins"
-version = "1.6.0"
+version = "1.6.1"
 
 [[package]]
 name = "png"
@@ -3135,7 +3140,7 @@ dependencies = [
 
 [[package]]
 name = "search"
-version = "1.6.0"
+version = "1.6.1"
 dependencies = [
  "egui",
  "regex",
@@ -3210,7 +3215,7 @@ dependencies = [
 
 [[package]]
 name = "settings"
-version = "1.6.0"
+version = "1.6.1"
 dependencies = [
  "dirs",
  "egui",
@@ -3232,7 +3237,7 @@ dependencies = [
 
 [[package]]
 name = "shared"
-version = "1.6.0"
+version = "1.6.1"
 
 [[package]]
 name = "shlex"
@@ -3432,9 +3437,9 @@ dependencies = [
 
 [[package]]
 name = "tabs"
-version = "1.6.0"
+version = "1.6.1"
 dependencies = [
- "core",
+ "editor",
 ]
 
 [[package]]
@@ -3461,7 +3466,7 @@ dependencies = [
 
 [[package]]
 name = "theme"
-version = "1.6.0"
+version = "1.6.1"
 dependencies = [
  "egui",
  "serde",

@@ -80,7 +80,7 @@ jobs:
           
           cat > deb-package/DEBIAN/control << EOF
           Package: asteride
-          Version: 1.6.1
+          Version: 1.6.2
           Section: editors
           Priority: optional
           Architecture: amd64
@@ -111,7 +111,7 @@ jobs:
           
           cat > rpm-package/SPECS/asteride.spec << EOF
           Name: asteride
-          Version: 1.6.1
+          Version: 1.6.2
           Release: 1%{?dist}
           Summary: A Simple Text Editor written in Rust.
           License: MIT
@@ -145,13 +145,13 @@ jobs:
           /usr/share/applications/asteride.desktop
           
           %changelog
-          * $(date +'%a %b %d %Y') AsterIDE <contact@asteride.dev> - 1.6.1-1
+          * $(date +'%a %b %d %Y') AsterIDE <contact@asteride.dev> - 1.6.2-1
           - Initial package
           EOF
           
           rpmbuild --define "_topdir $(pwd)/rpm-package" -ba rpm-package/SPECS/asteride.spec
           
-          cp rpm-package/RPMS/x86_64/asteride-1.6.1-1.x86_64.rpm build/AsterIDE.rpm
+          cp rpm-package/RPMS/x86_64/asteride-1.6.2-1.x86_64.rpm build/AsterIDE.rpm
       - uses: actions/upload-artifact@v6
         with:
           name: asteride-linux-deb-${{ github.sha }}
