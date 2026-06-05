@@ -252,7 +252,7 @@ dependencies = [
 
 [[package]]
 name = "asteride"
-version = "1.6.1"
+version = "1.6.2"
 dependencies = [
  "command_palette",
  "dirs",
@@ -723,7 +723,7 @@ dependencies = [
 
 [[package]]
 name = "command_palette"
-version = "1.6.1"
+version = "1.6.2"
 dependencies = [
  "egui",
  "theme",
@@ -934,7 +934,7 @@ dependencies = [
 
 [[package]]
 name = "editor"
-version = "1.6.1"
+version = "1.6.2"
 dependencies = [
  "eframe",
  "egui",
@@ -2042,7 +2042,7 @@ checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 
 [[package]]
 name = "lsp"
-version = "1.6.1"
+version = "1.6.2"
 
 [[package]]
 name = "malloc_buf"
@@ -2734,7 +2734,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "plugins"
-version = "1.6.1"
+version = "1.6.2"
 
 [[package]]
 name = "png"
@@ -3140,7 +3140,7 @@ dependencies = [
 
 [[package]]
 name = "search"
-version = "1.6.1"
+version = "1.6.2"
 dependencies = [
  "egui",
  "regex",
@@ -3215,7 +3215,7 @@ dependencies = [
 
 [[package]]
 name = "settings"
-version = "1.6.1"
+version = "1.6.2"
 dependencies = [
  "dirs",
  "egui",
@@ -3237,7 +3237,7 @@ dependencies = [
 
 [[package]]
 name = "shared"
-version = "1.6.1"
+version = "1.6.2"
 
 [[package]]
 name = "shlex"
@@ -3437,7 +3437,7 @@ dependencies = [
 
 [[package]]
 name = "tabs"
-version = "1.6.1"
+version = "1.6.2"
 dependencies = [
  "editor",
 ]
@@ -3466,7 +3466,7 @@ dependencies = [
 
 [[package]]
 name = "theme"
-version = "1.6.1"
+version = "1.6.2"
 dependencies = [
  "egui",
  "serde",

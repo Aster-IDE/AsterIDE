@@ -1,10 +1,12 @@
 ## Fixes
 
+- Need to sort the editor into it's own crate away from core.
 
 ---
 
 ## Structure
 
+- Need to possibly reformat the crates to save time when compiling.
 
 ---
 
