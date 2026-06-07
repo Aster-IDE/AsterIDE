@@ -249,6 +249,8 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
+      - name: Create build directory
+        run: mkdir -p build
       - name: Create Gentoo source tarball
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
