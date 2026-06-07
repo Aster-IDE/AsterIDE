@@ -8,7 +8,7 @@
 
 rustPlatform.buildRustPackage {
   pname = "asteride";
-  version = "1.6.2";
+  version = "1.6.3";
 
   src = ../.;
 
@@ -21,7 +21,7 @@ rustPlatform.buildRustPackage {
   ];
 
   postInstall = lib.optionalString stdenv.isDarwin ''
-    cd crates/editor
+    cd crates/core
     cargo bundle --release
     cd ../..
     
