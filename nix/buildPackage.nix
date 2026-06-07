@@ -21,7 +21,7 @@ rustPlatform.buildRustPackage {
   ];
 
   postInstall = lib.optionalString stdenv.isDarwin ''
-    cd crates/editor
+    cd crates/core
     cargo bundle --release
     cd ../..
     

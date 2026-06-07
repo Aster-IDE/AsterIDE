@@ -3,6 +3,10 @@ name = "asteride"
 version = "1.6.3"
 edition = "2024"
 
+[[bin]]
+name = "asteride"
+path = "src/main.rs"
+
 [package.metadata.bundle]
 name = "AsterIDE"
 identifier = "dev.playfairs.asteride"
