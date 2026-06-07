@@ -241,9 +241,61 @@ jobs:
         with:
           name: asteride-windows-${{ github.sha }}
           path: build/asteride.exe
+
+  build-gentoo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+          fetch-depth: 0
+      - name: Create Gentoo source tarball
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          git archive \
+            --format=tar.gz \
+            --prefix=asteride-${VERSION}/ \
+            HEAD \
+            > build/asteride-${VERSION}.tar.gz
+
+      - name: Generate ebuild
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          cat > build/asteride-${VERSION}.ebuild << EOF
+          EAPI=8
+
+          DESCRIPTION="A Simple Text Editor written in Rust"
+          HOMEPAGE="https://github.com/Aster-IDE/AsterIDE"
+
+          SRC_URI="https://github.com/Aster-IDE/AsterIDE/archive/refs/tags/v\${PV}.tar.gz -> \${P}.tar.gz"
+
+          LICENSE="MIT"
+          SLOT="0"
+          KEYWORDS="~amd64"
+
+          BDEPEND="virtual/rust"
+
+          src_compile() {
+              cargo build --release
+          }
+
+          src_install() {
+              dobin target/release/asteride
+          }
+          EOF
+      - uses: actions/upload-artifact@v6
+        with:
+          name: asteride-gentoo-tarball-${{ github.sha }}
+          path: build/asteride-*.tar.gz
+      - uses: actions/upload-artifact@v6
+        with:
+          name: asteride-gentoo-ebuild-${{ github.sha }}
+          path: build/asteride-*.ebuild
   
   release:
-    needs: [build-macos, build-linux, build-freebsd, build-windows]
+    needs: [build-macos, build-linux, build-freebsd, build-windows, build-gentoo]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -279,6 +331,16 @@ jobs:
         with:
           name: asteride-windows-${{ github.sha }}
           path: release
+      - name: Download Gentoo tarball artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: asteride-gentoo-tarball-${{ github.sha }}
+          path: release
+      - name: Download Gentoo ebuild artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: asteride-gentoo-ebuild-${{ github.sha }}
+          path: release
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -291,5 +353,7 @@ jobs:
             release/AsterIDE.rpm
             release/asteride-freebsd
             release/asteride.exe
+            release/asteride-*.tar.gz
+            release/asteride-*.ebuild
           name: AsterIDE ${{ github.ref_name }}
           fail_on_unmatched_files: true
