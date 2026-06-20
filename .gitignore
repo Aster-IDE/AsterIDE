@@ -9,3 +9,6 @@ build/
 
 # nix
 result
+
+# Jet Brains
+.idea
