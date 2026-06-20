@@ -17,7 +17,7 @@ copyright = "Copyright (c) 2026"
 category = "Developer"
 short_description = "A Simple Text Editor written in Rust."
 long_description = """
-A Simple Text Editor written in Rust, made using eGUI, and eframe.
+A Simple Text Editor written in Rust, made for Femboys 🌸.
 """
 
 [dependencies]
