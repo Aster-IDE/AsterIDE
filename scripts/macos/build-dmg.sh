@@ -11,15 +11,7 @@ build_dir="${BUILD_DIR:-build/dmg}"
 output_dir="${OUTPUT_DIR:-build}"
 output_dmg="${OUTPUT_DMG:-${output_dir}/${app_name}.dmg}"
 tmp_dmg="${TMPDIR:-/private/tmp}/${app_name}.$$.dmg"
-version="${VERSION:-$(awk '
-    $0 == "[package]" { in_package = 1; next }
-    /^\[/ { in_package = 0 }
-    in_package && $1 == "version" {
-        gsub(/"/, "", $3)
-        print $3
-        exit
-    }
-' crates/editor/Cargo.toml)}"
+version="${VERSION:-$(bash "${script_dir}/../read-version.sh")}"
 
 remove_staging_dir() {
     if [[ -d "${build_dir}" ]]; then

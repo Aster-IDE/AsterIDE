@@ -13,15 +13,7 @@ output_dir="${OUTPUT_DIR:-build}"
 output_pkg="${OUTPUT_PKG:-${output_dir}/${app_name}.pkg}"
 pkg_identifier="${PKG_IDENTIFIER:-dev.playfairs.asteride}"
 tmp_pkg="${TMPDIR:-/private/tmp}/${app_name}.$$.pkg"
-version="${VERSION:-$(awk '
-    $0 == "[package]" { in_package = 1; next }
-    /^\[/ { in_package = 0 }
-    in_package && $1 == "version" {
-        gsub(/"/, "", $3)
-        print $3
-        exit
-    }
-' crates/editor/Cargo.toml)}"
+version="${VERSION:-$(bash "${script_dir}/../read-version.sh")}"
 
 remove_staging_dir() {
     if [[ -d "${build_dir}" ]]; then
