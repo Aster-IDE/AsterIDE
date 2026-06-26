@@ -8,7 +8,7 @@
 
 rustPlatform.buildRustPackage {
   pname = "asteride";
-  version = builtins.fromTOML (builtins.readFile ../Version.toml).version;
+  version = (builtins.fromTOML (builtins.readFile ../Version.toml)).version;
 
   src = ../.;
 
