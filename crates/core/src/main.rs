@@ -82,7 +82,8 @@ impl AsterIDE {
             initial_path,
         };
         
-        // Open pinned files on startup
+        // Pinned files open on startup
+        // If a file is unpinned, it'll stay opened until next launch.
         for pinned_file in asteride.settings.pinned_files.clone() {
             if pinned_file.exists() {
                 if let Ok(content) = std::fs::read_to_string(&pinned_file) {
@@ -197,6 +198,57 @@ impl AsterIDE {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs_f64();
+    }
+
+    fn find_scm_root(&self, path: &std::path::Path) -> Option<(String, std::path::PathBuf)> {
+        let mut current = if path.is_file() {
+            path.parent().unwrap_or(path)
+        } else {
+            path
+        };
+
+        loop {
+            if current.join(".git").exists() {
+                return Some(("Git".to_string(), current.to_path_buf()));
+            }
+            if current.join(".hg").exists() {
+                return Some(("Mercurial".to_string(), current.to_path_buf()));
+            }
+
+            match current.parent() {
+                Some(parent) if parent != current => current = parent,
+                _ => break,
+            }
+        }
+
+        None
+    }
+
+    fn get_scm_status(&self, path: &std::path::Path) -> Option<(String, String)> {
+        let (kind, root) = self.find_scm_root(path)?;
+        let (program, args) = if kind == "Git" {
+            ("git", vec!["status", "--short", "--branch"])
+        } else {
+            ("hg", vec!["status", "-A"])
+        };
+
+        let output = std::process::Command::new(program)
+            .arg("-C")
+            .arg(root.to_string_lossy().as_ref())
+            .args(args)
+            .output()
+            .ok()?;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+
+        if !stdout.is_empty() {
+            Some((kind, stdout))
+        } else if !stderr.is_empty() {
+            Some((kind, stderr))
+        } else {
+            Some((kind, "No changes".to_string()))
+        }
     }
 
     fn should_ignore_dir(&self, path: &std::path::Path) -> bool {
@@ -618,24 +670,29 @@ impl AsterIDE {
                         .unwrap_or(TabType::File);
                     
                     // Explorer is only active when sidebar tab is Explorer AND current tab is a file
+                    // and the sidebar is visible.
                     let explorer_active = self.active_sidebar_tab == SidebarTab::Explorer 
-                        && active_tab_type == TabType::File;
+                        && active_tab_type == TabType::File
+                        && self.settings.sidebar_visible;
                     
                     if self.icon_button(ui, "📁", "Explorer", explorer_active, button_size) {
                         self.toggle_sidebar(SidebarTab::Explorer);
                     }
 
-                    let search_active = self.active_sidebar_tab == SidebarTab::Search;
+                    let search_active = self.active_sidebar_tab == SidebarTab::Search
+                        && self.settings.sidebar_visible;
                     if self.icon_button(ui, "🔍", "Search", search_active, button_size) {
                         self.tabs.open_search_tab();
                     }
 
-                    let git_active = self.active_sidebar_tab == SidebarTab::Git;
+                    let git_active = self.active_sidebar_tab == SidebarTab::Git
+                        && self.settings.sidebar_visible;
                     if self.icon_button(ui, "🌸", "Git", git_active, button_size) {
                         self.toggle_sidebar(SidebarTab::Git);
                     }
 
-                    let ext_active = self.active_sidebar_tab == SidebarTab::Extensions;
+                    let ext_active = self.active_sidebar_tab == SidebarTab::Extensions
+                        && self.settings.sidebar_visible;
                     if self.icon_button(ui, "📦", "Extensions", ext_active, button_size) {
                         self.toggle_sidebar(SidebarTab::Extensions);
                     }
@@ -673,6 +730,16 @@ impl AsterIDE {
             CherryBlossomTheme::bg_dark()
         };
 
+        ui.painter().rect_filled(rect, 6.0, bg_color);
+
+        if active {
+            ui.painter().rect_filled(
+                egui::Rect::from_min_size(rect.left_top(), egui::vec2(3.0, rect.height())),
+                0.0,
+                CherryBlossomTheme::accent_pink(),
+            );
+        }
+
         let fg_color = if active {
             CherryBlossomTheme::accent_pink()
         } else if response.hovered() {
@@ -680,8 +747,6 @@ impl AsterIDE {
         } else {
             CherryBlossomTheme::text_secondary()
         };
-
-        ui.painter().rect_filled(rect, 6.0, bg_color);
 
         let galley = ui.painter().layout(
             icon.to_string(),
@@ -1417,17 +1482,35 @@ impl AsterIDE {
 
         ui.horizontal(|ui| {
             if ui.button("🌸 Commit").clicked() {
-                self.set_status("Git commit not yet implemented".to_string(), ui.ctx());
+                self.set_status("Commit support will be wired into the SCM layer next".to_string(), ui.ctx());
             }
             if ui.button("↻ Refresh").clicked() {
-                self.set_status("Git refresh not yet implemented".to_string(), ui.ctx());
+                self.set_status("Refreshing repository state".to_string(), ui.ctx());
             }
         });
 
         ui.add_space(10.0);
-        ui.label("Changes");
-        ui.separator();
-        ui.label("No changes");
+
+        let repository_status = self
+            .tabs
+            .active_tab_path()
+            .and_then(|path| self.get_scm_status(path));
+
+        match repository_status {
+            Some((kind, status)) => {
+                ui.label(format!("Repository: {}", kind));
+                ui.add_space(4.0);
+                ui.label("Changes");
+                ui.separator();
+
+                for line in status.lines().filter(|line| !line.trim().is_empty()) {
+                    ui.label(line);
+                }
+            }
+            None => {
+                ui.label("No Git or Mercurial repository detected for the current file.");
+            }
+        }
     }
 
     fn show_extensions(&mut self, ui: &mut egui::Ui) {
