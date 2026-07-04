@@ -11,6 +11,8 @@ jobs:
           submodules: true
           fetch-depth: 0
       - uses: DeterminateSystems/nix-installer-action@v14
+      - name: Sync version
+        run: bash scripts/sync-version.sh
       - name: Build and package DMG
         run: nix develop -c just create-mac-dmg
       - name: Build and package PKG
@@ -39,6 +41,8 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
+      - name: Sync version
+        run: bash scripts/sync-version.sh
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -70,6 +74,7 @@ jobs:
           fi
       - name: Create .deb package
         run: |
+          version="$(bash scripts/read-version.sh)"
           mkdir -p deb-package/DEBIAN
           mkdir -p deb-package/usr/local/bin
           mkdir -p deb-package/usr/share/applications
@@ -80,7 +85,7 @@ jobs:
           
           cat > deb-package/DEBIAN/control << EOF
           Package: asteride
-          Version: 1.6.3
+          Version: ${version}
           Section: editors
           Priority: optional
           Architecture: amd64
@@ -109,9 +114,10 @@ jobs:
           
           cp build/asteride-linux rpm-package/SOURCES/asteride
           
+          version="$(bash scripts/read-version.sh)"
           cat > rpm-package/SPECS/asteride.spec << EOF
           Name: asteride
-          Version: 1.6.3
+          Version: ${version}
           Release: 1%{?dist}
           Summary: A Simple Text Editor written in Rust.
           License: MIT
@@ -145,13 +151,13 @@ jobs:
           /usr/share/applications/asteride.desktop
           
           %changelog
-          * $(date +'%a %b %d %Y') AsterIDE <contact@asteride.dev> - 1.6.3-1
+          * $(date +'%a %b %d %Y') AsterIDE <contact@asteride.dev> - ${version}-1
           - Initial package
           EOF
           
           rpmbuild --define "_topdir $(pwd)/rpm-package" -ba rpm-package/SPECS/asteride.spec
           
-          cp rpm-package/RPMS/x86_64/asteride-1.6.3-1.x86_64.rpm build/AsterIDE.rpm
+          cp rpm-package/RPMS/x86_64/asteride-${version}-1.x86_64.rpm build/AsterIDE.rpm
       - uses: actions/upload-artifact@v6
         with:
           name: asteride-linux-deb-${{ github.sha }}
@@ -168,6 +174,8 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
+      - name: Sync version
+        run: bash scripts/sync-version.sh
       - name: Build in FreeBSD VM
         uses: vmactions/freebsd-vm@v1
         with:
@@ -196,6 +204,8 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
+      - name: Sync version
+        run: bash scripts/sync-version.sh
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
