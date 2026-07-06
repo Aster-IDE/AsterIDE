@@ -6,6 +6,11 @@
 	objectVersion = 90;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		752AFFF62FFC65BE000144B7 /* Outputs-Debug.xcfilelist in Resources */ = {isa = PBXBuildFile; fileRef = 752AFFF52FFC65BE000144B7 /* Outputs-Debug.xcfilelist */; };
+		752AFFF82FFC65C5000144B7 /* Outputs-Release.xcfilelist in Resources */ = {isa = PBXBuildFile; fileRef = 752AFFF72FFC65C5000144B7 /* Outputs-Release.xcfilelist */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		758015682FFB826900215DD9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -17,6 +22,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		752AFFF52FFC65BE000144B7 /* Outputs-Debug.xcfilelist */ = {isa = PBXFileReference; lastKnownFileType = text.xcfilelist; path = "Outputs-Debug.xcfilelist"; sourceTree = "<group>"; };
+		752AFFF72FFC65C5000144B7 /* Outputs-Release.xcfilelist */ = {isa = PBXFileReference; lastKnownFileType = text.xcfilelist; path = "Outputs-Release.xcfilelist"; sourceTree = "<group>"; };
 		7580155D2FFB819200215DD9 /* AsterIDE.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AsterIDE.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -32,6 +39,8 @@
 		000000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
+				752AFFF52FFC65BE000144B7 /* Outputs-Debug.xcfilelist */,
+				752AFFF72FFC65C5000144B7 /* Outputs-Release.xcfilelist */,
 				7580155E2FFB819200215DD9 /* asteride */,
 				000000000000000000000020 /* Products */,
 			);
@@ -120,6 +129,8 @@
 		7580155B2FFB819200215DD9 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
+				752AFFF82FFC65C5000144B7 /* Outputs-Release.xcfilelist in Resources */,
+				752AFFF62FFC65BE000144B7 /* Outputs-Debug.xcfilelist in Resources */,
 			);
 		};
 /* End PBXResourcesBuildPhase section */
@@ -128,13 +139,18 @@
 		7580156A2FFB82E800215DD9 /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
 			name = "Run Script";
+			outputFileListPaths = (
+				"$(SRCROOT)/Outputs-$(CONFIGURATION).xcfilelist",
+			);
 			shellPath = /bin/sh;
 			shellScript = (
 				"set -e",
-				"CARGO_BIN_DIR=\"${SRCROOT}/../target/debug\"",
-				"if [ \"${CONFIGURATION}\" = \"Release\" ]; then",
-				"  CARGO_BIN_DIR=\"${SRCROOT}/../target/release\"",
+				"",
+				"if [ \"$CONFIGURATION\" != \"Debug\" ]; then",
+				"    exit 0",
 				"fi",
+				"",
+				"CARGO_BIN_DIR=\"${SRCROOT}/../target/debug\"",
 				"",
 				"mkdir -p \"${TARGET_BUILD_DIR}/${EXECUTABLE_FOLDER_PATH}\"",
 				"cp \"${CARGO_BIN_DIR}/asteride\" \"${TARGET_BUILD_DIR}/${EXECUTABLE_PATH}\"",
