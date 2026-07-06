@@ -2,7 +2,7 @@ name: Build (Release)
 on: [push, pull_request]
 jobs:
   build-macos:
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v6
         with:
