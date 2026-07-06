@@ -68,7 +68,7 @@ jobs:
           fi
       - name: Create .deb package
         run: |
-          version="$(bash scripts/read-version.sh)"
+          version="$(cargo xtask)"
           mkdir -p deb-package/DEBIAN
           mkdir -p deb-package/usr/local/bin
           mkdir -p deb-package/usr/share/applications
@@ -108,7 +108,7 @@ jobs:
 
           cp build/asteride-linux rpm-package/SOURCES/asteride
 
-          version="$(bash scripts/read-version.sh)"
+          version="$(cargo xtask)"
           cat > rpm-package/SPECS/asteride.spec << EOF
           Name: asteride
           Version: ${version}
