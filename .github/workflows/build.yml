@@ -8,6 +8,8 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
+      - name: Remove rustup toolchains
+        run: rm -rf ~/.rustup ~/.cargo
       - uses: DeterminateSystems/nix-installer-action@v14
       - name: Build and package
         run: nix develop -c just ci-publish-macos
