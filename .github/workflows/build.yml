@@ -265,7 +265,7 @@ jobs:
 
           SRC_URI="https://github.com/Aster-IDE/AsterIDE/archive/refs/tags/v\${PV}.tar.gz -> \${P}.tar.gz"
 
-          LICENSE="MIT"
+          LICENSE="GPLv3"
           SLOT="0"
           KEYWORDS="~amd64"
 
