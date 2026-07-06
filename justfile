@@ -13,7 +13,9 @@ ci-publish-macos:
 
 
 create-mac-app:
-    xcodebuild \
+    cargo build --release
+
+    SKIP_CARGO_BUILD=1 xcodebuild \
       -project macApp/macApp.xcodeproj \
       -target AsterIDE \
       -configuration Release \
