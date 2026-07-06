@@ -3,7 +3,7 @@ version := `cargo xtask`
 build_dir := "build"
 
 build-clean:
-    rm -r {{build_dir}}
+    rm -rf {{build_dir}}
 
 ci-publish-macos:
     @just build-clean
