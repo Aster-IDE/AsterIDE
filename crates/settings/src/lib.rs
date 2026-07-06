@@ -30,6 +30,7 @@ impl Default for SettingsCategory {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Settings {
     pub show_line_numbers: bool,
     pub word_wrap: bool,
@@ -416,144 +417,16 @@ impl Settings {
     }
 
     fn to_toml_string(&self) -> String {
-        let mut toml = String::new();
-
-        macro_rules! push_line {
-            ($($arg:tt)*) => {
-                toml.push_str(&format!($($arg)*));
-                toml.push('\n');
-            };
-        }
-
-        push_line!("show_line_numbers = {}", self.show_line_numbers);
-        push_line!("word_wrap = {}", self.word_wrap);
-        push_line!("font_size = {}", self.font_size);
-        push_line!("font_family = \"{}\"", self.font_family);
-        push_line!("tab_size = {}", self.tab_size);
-        push_line!("use_spaces = {}", self.use_spaces);
-        push_line!("show_whitespace = {}", self.show_whitespace);
-        push_line!("show_indent_guides = {}", self.show_indent_guides);
-        push_line!("vim_mode = {}", self.vim_mode);
-        toml.push('\n');
-
-        push_line!("auto_save = {}", self.auto_save);
-        push_line!("auto_save_interval = {}", self.auto_save_interval);
-        push_line!("auto_save_on_focus_lost = {}", self.auto_save_on_focus_lost);
-        push_line!("auto_reload_files = {}", self.auto_reload_files);
-        push_line!("confirm_before_save = {}", self.confirm_before_save);
-        toml.push('\n');
-
-        push_line!("highlight_current_line = {}", self.highlight_current_line);
-        push_line!("highlight_matching_brackets = {}", self.highlight_matching_brackets);
-        push_line!("bracket_pair_colorization = {}", self.bracket_pair_colorization);
-        toml.push('\n');
-
-        push_line!("auto_indent = {}", self.auto_indent);
-        push_line!("auto_close_brackets = {}", self.auto_close_brackets);
-        push_line!("auto_close_quotes = {}", self.auto_close_quotes);
-        push_line!("auto_detect_indentation = {}", self.auto_detect_indentation);
-        push_line!("trim_trailing_whitespace = {}", self.trim_trailing_whitespace);
-        push_line!("insert_final_newline = {}", self.insert_final_newline);
-        push_line!("trim_auto_whitespace = {}", self.trim_auto_whitespace);
-        toml.push('\n');
-
-        push_line!("scroll_beyond_last_line = {}", self.scroll_beyond_last_line);
-        push_line!("line_height = {}", self.line_height);
-        push_line!("cursor_blinking = {}", self.cursor_blinking);
-        push_line!("cursor_style = \"{}\"", self.cursor_style as u8);
-        toml.push('\n');
-
-        push_line!("font_smoothing = {}", self.font_smoothing);
-        push_line!("window_opacity = {}", self.window_opacity);
-        push_line!("animations_enabled = {}", self.animations_enabled);
-        push_line!("corner_roundness = {}", self.corner_roundness);
-        toml.push('\n');
-
-        push_line!("theme_family = \"{}\"", self.theme_family.name());
-        push_line!("theme_variant = \"{}\"", self.theme_variant.name());
-        toml.push('\n');
-
-        push_line!("sidebar_visible = {}", self.sidebar_visible);
-        push_line!("status_bar_visible = {}", self.status_bar_visible);
-        push_line!("activity_bar_visible = {}", self.activity_bar_visible);
-        toml.push('\n');
-
-        push_line!("panel_size = {}", self.panel_size);
-        push_line!(
-            "panel_position = \"{}\"",
-            match self.panel_position {
-                crate::categories::workbench::PanelPosition::Bottom => "Bottom",
-                crate::categories::workbench::PanelPosition::Left => "Left",
-                crate::categories::workbench::PanelPosition::Right => "Right",
-            }
-        );
-        push_line!("auto_hide_panel = {}", self.auto_hide_panel);
-        toml.push('\n');
-
-        push_line!("show_open_editors = {}", self.show_open_editors);
-        push_line!("show_explorer = {}", self.show_explorer);
-        push_line!("show_search = {}", self.show_search);
-        push_line!("show_git = {}", self.show_git);
-        push_line!("show_extensions = {}", self.show_extensions);
-        push_line!("compact_mode = {}", self.compact_mode);
-        toml.push('\n');
-
-        push_line!("minimap = {}", self.minimap);
-        toml.push('\n');
-
-        push_line!("search_ignore_dirs_enabled = {}", self.search_ignore_dirs_enabled);
-        toml.push_str("search_ignored_dirs = [\n");
-        for dir in self.search_ignored_dirs.split(',').map(str::trim).filter(|d| !d.is_empty()) {
-            toml.push_str(&format!("    \"{}\",\n", dir));
-        }
-        toml.push_str("]\n");
-        push_line!("search_min_chars = {}", self.search_min_chars);
-        push_line!("search_case_sensitive = {}", self.search_case_sensitive);
-        push_line!("search_whole_word = {}", self.search_whole_word);
-        push_line!("search_use_regex = {}", self.search_use_regex);
-        push_line!("search_include_hidden = {}", self.search_include_hidden);
-        push_line!("search_follow_symlinks = {}", self.search_follow_symlinks);
-        toml.push('\n');
-
-        push_line!(
-            "keymap_scheme = \"{}\"",
-            match self.keymap_scheme {
-                crate::categories::keyboard::KeymapScheme::Default => "Default",
-                crate::categories::keyboard::KeymapScheme::VSCode => "VSCode",
-                crate::categories::keyboard::KeymapScheme::SublimeText => "SublimeText",
-                crate::categories::keyboard::KeymapScheme::Atom => "Atom",
-                crate::categories::keyboard::KeymapScheme::Emacs => "Emacs",
-            }
-        );
-        push_line!("vim_leader_key = \"{}\"", self.vim_leader_key);
-        push_line!("multi_cursor_enabled = {}", self.multi_cursor_enabled);
-        toml.push('\n');
-
-        push_line!("suggest_snippets = {}", self.suggest_snippets);
-        push_line!("quick_suggestions = {}", self.quick_suggestions);
-        toml.push('\n');
-
-        push_line!("recent_files_limit = {}", self.recent_files_limit);
-        push_line!("recent_projects_limit = {}", self.recent_projects_limit);
-        toml.push('\n');
-
-        push_line!("pinned_files = []");
-        toml.push('\n');
-
-        push_line!("default_file_encoding = \"{}\"", self.default_file_encoding);
-        toml.push('\n');
-
-        push_line!("tree_spacing = {}", self.tree_spacing);
-        toml.push('\n');
-        toml.push_str("[file_associations]\n");
-
-        toml
+        toml::to_string_pretty(self).unwrap_or_else(|err| {
+            eprintln!("failed to serialize settings: {err}");
+            String::new()
+        })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Settings;
+    use super::{CursorStyle, Settings};
 
     #[test]
     fn settings_round_trip_uses_toml() {
@@ -564,6 +437,22 @@ mod tests {
         assert_eq!(deserialized.font_size, settings.font_size);
         assert_eq!(deserialized.theme_variant, settings.theme_variant);
         assert_eq!(deserialized.show_line_numbers, settings.show_line_numbers);
+    }
+
+    #[test]
+    fn app_settings_toml_writer_round_trips_theme_and_cursor_values() {
+        let mut settings = Settings::default();
+        settings.theme_family = crate::categories::appearance::AppearanceSettings::default().theme_family;
+        settings.theme_variant = theme::ThemeVariant::RosePineMoon;
+        settings.cursor_style = CursorStyle::Underline;
+        settings.search_ignored_dirs = "foo,bar".to_string();
+
+        let serialized = settings.to_toml_string();
+        let deserialized: Settings = toml::from_str(&serialized).unwrap();
+
+        assert_eq!(deserialized.theme_family, settings.theme_family);
+        assert_eq!(deserialized.theme_variant, settings.theme_variant);
+        assert_eq!(deserialized.cursor_style, settings.cursor_style);
     }
 }
 
