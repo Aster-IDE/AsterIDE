@@ -1,6 +1,6 @@
 [package]
 name = "terminal"
-version = "1.6.5"
 edition = "2024"
+version.workspace = true
 
 [dependencies]

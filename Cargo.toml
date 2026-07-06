@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "xtask",
     "crates/command_palette",
     "crates/core",
     "crates/editor",
@@ -12,7 +13,7 @@ members = [
     "crates/theme"
 ]
 
-resolver = "2"
+resolver = "3"
 
 [workspace.package]
-version = "1.6.5"
+version = "1.7.0"

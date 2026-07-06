@@ -1,45 +1,58 @@
-{ lib
-, stdenv
-, rustPlatform
-, darwin
-, installShellFiles
-, cargo-bundle
+{
+  lib,
+  stdenv,
+  rustPlatform,
+  cargo,
+  rustc,
 }:
-
-rustPlatform.buildRustPackage {
+# IMPORTANT: broken, need to change it to get a binary.
+stdenv.mkDerivation (finalAttrs: {
   pname = "asteride";
-  version = (builtins.fromTOML (builtins.readFile ../Version.toml)).version;
-
+  version = (fromTOML (builtins.readFile ../Version.toml)).version;
   src = ../.;
 
-  cargoLock = {
+  __noChroot = true;
+
+  nativeBuildInputs = [
+    cargo
+    rustc
+    rustPlatform.cargoSetupHook
+  ];
+
+  cargoDeps = rustPlatform.importCargoLock {
     lockFile = ../Cargo.lock;
   };
 
-  nativeBuildInputs = [ cargo-bundle ] ++ lib.optionals stdenv.isDarwin [
-    installShellFiles
-  ];
+  buildPhase = ''
+    runHook preBuild
 
-  postInstall = lib.optionalString stdenv.isDarwin ''
-    cd crates/core
-    cargo bundle --release
-    cd ../..
-    
+    cargo build --release --offline --target-dir target
+
+    xcodebuild \
+      -project macApp/macApp.xcodeproj \
+      -target asteride \
+      -configuration Release \
+      -derivedDataPath build/DerivedData \
+      CODE_SIGNING_ALLOWED=NO \
+      build
+
+    runHook postBuild
+  '';
+
+  installPhase = ''
+    runHook preInstall
     mkdir -p $out/Applications
-    cp -r target/release/bundle/osx/AsterIDE.app $out/Applications/
-    
-    xattr -rc $out/Applications/AsterIDE.app 2>/dev/null || true
-    
+    cp -R build/DerivedData/Build/Products/Release/asteride.app $out/Applications/
     mkdir -p $out/bin
-    rm $out/bin/asteride
-    ln -sf $out/Applications/AsterIDE.app/Contents/MacOS/asteride $out/bin/asteride
+    ln -sf $out/Applications/asteride.app/Contents/MacOS/asteride $out/bin/asteride
+    runHook postInstall
   '';
 
   meta = with lib; {
     description = "A Simple Text Editor written in Rust.";
     homepage = "https://github.com/playfairs/AsterIDE";
     license = licenses.gpl3;
-    maintainers = [];
+    maintainers = [ ];
     platforms = platforms.darwin;
   };
-}
+})

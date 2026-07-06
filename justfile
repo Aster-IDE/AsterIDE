@@ -1,26 +1,56 @@
 set windows-shell := ["powershell.exe", "-NoProfile", "-Command"]
+version := `cargo xtask`
 build_dir := "build"
 
-build-nix:
-    @just sync-version
-    nix build
+build-clean:
+    rm -r {{build_dir}}
 
-sync-version:
-    ./scripts/sync-version.sh
+ci-publish-macos:
+    @just build-clean
+    @just create-mac-app
+    @just create-mac-installers
+    @just clean-mac-build-artifacts
 
-clean:
-    rm -rf build
-    rm -f result
+
+create-mac-app:
+    xcodebuild \
+      -project macApp/macApp.xcodeproj \
+      -target AsterIDE \
+      -configuration Release \
+      CODE_SIGNING_ALLOWED=NO \
+      MARKETING_VERSION={{version}} \
+      CURRENT_PROJECT_VERSION={{version}} \
+      build
+
+    codesign --force --deep --sign - macApp/build/Release/AsterIDE.app
+    mkdir -p {{build_dir}}
+    ditto macApp/build/Release/AsterIDE.app {{build_dir}}/AsterIDE.app
+    xattr -cr {{build_dir}}/AsterIDE.app
+
+create-mac-installers:
+    @just create-mac-pkg
+    @just create-mac-dmg
+    @just create-mac-tar
 
 create-mac-pkg:
-    @just sync-version
-    @just build-nix
-    ./scripts/macos/build-pkg.sh
+    pkgbuild --root {{build_dir}}/AsterIDE.app \
+      --install-location "/Applications/AsterIDE.app" \
+      --identifier dev.playfairs.asteride \
+      --version {{version}} \
+      {{build_dir}}/AsterIDE.pkg
 
 create-mac-dmg:
-    @just sync-version
-    @just build-nix
-    ./scripts/macos/build-dmg.sh
+    create-dmg \
+      --volname "AsterIDE" \
+      --window-size 500 300 \
+      --icon-size 96 \
+      --icon "AsterIDE.app" 125 150 \
+      --app-drop-link 375 150 \
+      "{{build_dir}}/AsterIDE.dmg" \
+      "{{build_dir}}/AsterIDE.app"
 
-create-mac-release:
-    @just create-mac-dmg
+create-mac-tar:
+    tar -czf {{build_dir}}/AsterIDE.app.tar.gz -C {{build_dir}} AsterIDE.app
+
+clean-mac-build-artifacts:
+    rm -r {{build_dir}}/AsterIDE.app

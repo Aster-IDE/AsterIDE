@@ -1,7 +1,5 @@
 name: Build (Release)
-on:
-  release:
-    types: [published]
+on: [push, pull_request]
 jobs:
   build-macos:
     runs-on: macos-latest
@@ -11,27 +9,25 @@ jobs:
           submodules: true
           fetch-depth: 0
       - uses: DeterminateSystems/nix-installer-action@v14
-      - name: Sync version
-        run: bash scripts/sync-version.sh
-      - name: Build and package DMG
-        run: nix develop -c just create-mac-dmg
-      - name: Build and package PKG
-        run: nix develop -c just create-mac-pkg
+      - name: Build and package
+        run: nix develop -c just ci-publish-macos
       - name: Remove quarantine from artifacts
         run: |
-          xattr -rd com.apple.quarantine build/AsterIDE.dmg 2>/dev/null || true
-          xattr -rd com.apple.quarantine build/AsterIDE.pkg 2>/dev/null || true
-      - name: Upload macOS DMG artifact
-        uses: actions/upload-artifact@v6
+          xattr -rd com.apple.quarantine build/* 2>/dev/null || true
+      - uses: actions/upload-artifact@v6
         with:
-          name: asteride-macos-dmg-${{ github.sha }}
-          path: build/AsterIDE.dmg
+          name: asteride-release-mac-tar-${{ github.sha }}
+          path: build/AsterIDE.app.tar.gz
           if-no-files-found: error
-      - name: Upload macOS PKG artifact
-        uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v6
         with:
-          name: asteride-macos-pkg-${{ github.sha }}
+          name: asteride-release-mac-pkg-${{ github.sha }}
           path: build/AsterIDE.pkg
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v6
+        with:
+          name: asteride-release-mac-dmg-${{ github.sha }}
+          path: build/AsterIDE.dmg
           if-no-files-found: error
 
   build-linux:
@@ -41,8 +37,6 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
-      - name: Sync version
-        run: bash scripts/sync-version.sh
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -79,10 +73,10 @@ jobs:
           mkdir -p deb-package/usr/local/bin
           mkdir -p deb-package/usr/share/applications
           mkdir -p deb-package/usr/share/icons/hicolor/256x256/apps
-          
+
           cp build/asteride-linux deb-package/usr/local/bin/asteride
           chmod +x deb-package/usr/local/bin/asteride
-          
+
           cat > deb-package/DEBIAN/control << EOF
           Package: asteride
           Version: ${version}
@@ -92,7 +86,7 @@ jobs:
           Maintainer: AsterIDE
           Description: A Simple Text Editor written in Rust.
           EOF
-          
+
           cat > deb-package/usr/share/applications/asteride.desktop << EOF
           [Desktop Entry]
           Name=AsterIDE
@@ -102,7 +96,7 @@ jobs:
           Type=Application
           Categories=Utility;TextEditor;
           EOF
-          
+
           dpkg-deb --build deb-package build/AsterIDE.deb
       - name: Create .rpm package
         run: |
@@ -111,9 +105,9 @@ jobs:
           mkdir -p rpm-package/SOURCES
           mkdir -p rpm-package/SPECS
           mkdir -p rpm-package/SRPMS
-          
+
           cp build/asteride-linux rpm-package/SOURCES/asteride
-          
+
           version="$(bash scripts/read-version.sh)"
           cat > rpm-package/SPECS/asteride.spec << EOF
           Name: asteride
@@ -123,18 +117,18 @@ jobs:
           License: MIT
           URL: https://github.com/Aster-IDE/AsterIDE
           Source0: asteride
-          
+
           %description
           A Simpler Text Editor written in Rust.
-          
+
           %prep
           %build
-          
+
           %install
           mkdir -p %{buildroot}/usr/local/bin
           cp %{SOURCE0} %{buildroot}/usr/local/bin/asteride
           chmod +x %{buildroot}/usr/local/bin/asteride
-          
+
           mkdir -p %{buildroot}/usr/share/applications
           cat > %{buildroot}/usr/share/applications/asteride.desktop << DESKTOPEOF
           [Desktop Entry]
@@ -145,27 +139,29 @@ jobs:
           Type=Application
           Categories=Utility;TextEditor;
           DESKTOPEOF
-          
+
           %files
           /usr/local/bin/asteride
           /usr/share/applications/asteride.desktop
-          
+
           %changelog
           * $(date +'%a %b %d %Y') AsterIDE <contact@asteride.dev> - ${version}-1
           - Initial package
           EOF
-          
+
           rpmbuild --define "_topdir $(pwd)/rpm-package" -ba rpm-package/SPECS/asteride.spec
-          
+
           cp rpm-package/RPMS/x86_64/asteride-${version}-1.x86_64.rpm build/AsterIDE.rpm
       - uses: actions/upload-artifact@v6
         with:
           name: asteride-linux-deb-${{ github.sha }}
           path: build/AsterIDE.deb
+          if-no-files-found: error
       - uses: actions/upload-artifact@v6
         with:
           name: asteride-linux-rpm-${{ github.sha }}
           path: build/AsterIDE.rpm
+          if-no-files-found: error
 
   build-freebsd:
     runs-on: ubuntu-latest
@@ -174,8 +170,6 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
-      - name: Sync version
-        run: bash scripts/sync-version.sh
       - name: Build in FreeBSD VM
         uses: vmactions/freebsd-vm@v1
         with:
@@ -196,6 +190,7 @@ jobs:
         with:
           name: asteride-freebsd-${{ github.sha }}
           path: build/asteride-freebsd
+          if-no-files-found: error
 
   build-windows:
     runs-on: windows-latest
@@ -204,8 +199,6 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
-      - name: Sync version
-        run: bash scripts/sync-version.sh
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -251,6 +244,7 @@ jobs:
         with:
           name: asteride-windows-${{ github.sha }}
           path: build/asteride.exe
+          if-no-files-found: error
 
   build-gentoo:
     runs-on: ubuntu-latest
@@ -289,7 +283,8 @@ jobs:
         with:
           name: asteride-gentoo-ebuild-${{ github.sha }}
           path: build/asteride.ebuild
-  
+          if-no-files-found: error
+
   release:
     needs: [build-macos, build-linux, build-freebsd, build-windows, build-gentoo]
     runs-on: ubuntu-latest
@@ -300,12 +295,17 @@ jobs:
       - name: Download macOS DMG artifact
         uses: actions/download-artifact@v4
         with:
-          name: asteride-macos-dmg-${{ github.sha }}
+          name: asteride-release-mac-dmg-${{ github.sha }}
+          path: release
+      - name: Download macOS Tarball artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: asteride-release-mac-tar-${{ github.sha }}
           path: release
       - name: Download macOS PKG artifact
         uses: actions/download-artifact@v4
         with:
-          name: asteride-macos-pkg-${{ github.sha }}
+          name: asteride-release-mac-pkg-${{ github.sha }}
           path: release
       - name: Download Linux DEB artifact
         uses: actions/download-artifact@v4
@@ -340,6 +340,7 @@ jobs:
           files: |
             release/AsterIDE.dmg
             release/AsterIDE.pkg
+            release/AsterIDE.app.tar.gz
             release/AsterIDE.deb
             release/AsterIDE.rpm
             release/asteride-freebsd
