@@ -1,5 +1,11 @@
 #!/bin/sh
 set -e
+
+if [ -n "$SKIP_CARGO_BUILD" ]; then
+  echo "SKIP_CARGO_BUILD set — assuming binary was already built externally"
+  exit 0
+fi
+
 cd "$SRCROOT/.."
 
 NIX_BIN=""
@@ -21,7 +27,7 @@ if [ -z "$NIX_BIN" ]; then
 fi
 
 if [ "$1" = "Release" ]; then
-  "$NIX_BIN" develop --command cargo build --release
+  exec "$NIX_BIN" develop --command cargo build --release
 else
-  "$NIX_BIN" develop --command cargo build
+  exec "$NIX_BIN" develop --command cargo build
 fi
