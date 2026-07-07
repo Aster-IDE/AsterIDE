@@ -3,238 +3,237 @@ use std::path::PathBuf;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum TabType {
-    File,
-    Settings,
-    SearchResults,
+  File,
+  Settings,
+  SearchResults,
 }
 
 pub struct Tab {
-    pub id: usize,
-    pub name: String,
-    pub path: Option<PathBuf>,
-    pub editor: Editor,
-    pub is_modified: bool,
-    pub tab_type: TabType,
+  pub id: usize,
+  pub name: String,
+  pub path: Option<PathBuf>,
+  pub editor: Editor,
+  pub is_modified: bool,
+  pub tab_type: TabType,
 }
 
 pub struct TabManager {
-    pub tabs: Vec<Tab>,
-    pub active_tab: usize,
-    next_id: usize,
+  pub tabs: Vec<Tab>,
+  pub active_tab: usize,
+  next_id: usize,
 }
 
 impl TabManager {
-    pub fn new() -> Self {
-        Self {
-            tabs: Vec::new(),
-            active_tab: 0,
-            next_id: 1,
-        }
+  pub fn new() -> Self {
+    Self {
+      tabs: Vec::new(),
+      active_tab: 0,
+      next_id: 1,
+    }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.tabs.is_empty()
+  }
+
+  pub fn is_file_open(&self, path: &PathBuf) -> bool {
+    self
+      .tabs
+      .iter()
+      .any(|tab| tab.tab_type == TabType::File && tab.path.as_ref() == Some(path))
+  }
+
+  pub fn active_tab_path(&self) -> Option<&PathBuf> {
+    self.tabs.get(self.active_tab).and_then(|tab| {
+      if tab.tab_type == TabType::File {
+        tab.path.as_ref()
+      } else {
+        None
+      }
+    })
+  }
+
+  pub fn is_file_modified(&self, path: &PathBuf) -> bool {
+    self.tabs.iter().any(|tab| {
+      tab.tab_type == TabType::File && tab.path.as_ref() == Some(path) && tab.is_modified
+    })
+  }
+
+  pub fn new_tab(&mut self) {
+    let id = self.next_id;
+    self.next_id += 1;
+
+    let tab = Tab {
+      id,
+      name: format!("untitled-{}", id),
+      path: None,
+      editor: Editor::new(),
+      is_modified: false,
+      tab_type: TabType::File,
+    };
+
+    self.tabs.push(tab);
+    self.active_tab = self.tabs.len() - 1;
+  }
+
+  pub fn open_settings_tab(&mut self) {
+    for (i, tab) in self.tabs.iter().enumerate() {
+      if tab.tab_type == TabType::Settings {
+        self.active_tab = i;
+        return;
+      }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.tabs.is_empty()
+    let id = self.next_id;
+    self.next_id += 1;
+
+    let tab = Tab {
+      id,
+      name: "AsterIDE::Settings".to_string(),
+      path: None,
+      editor: Editor::new(),
+      is_modified: false,
+      tab_type: TabType::Settings,
+    };
+
+    self.tabs.push(tab);
+    self.active_tab = self.tabs.len() - 1;
+  }
+
+  pub fn open_search_tab(&mut self) {
+    for (i, tab) in self.tabs.iter().enumerate() {
+      if tab.tab_type == TabType::SearchResults {
+        self.active_tab = i;
+        return;
+      }
     }
 
-    pub fn is_file_open(&self, path: &PathBuf) -> bool {
-        self.tabs.iter().any(|tab| {
-            tab.tab_type == TabType::File && tab.path.as_ref() == Some(path)
-        })
-    }
+    let id = self.next_id;
+    self.next_id += 1;
 
-    pub fn active_tab_path(&self) -> Option<&PathBuf> {
-        self.tabs.get(self.active_tab).and_then(|tab| {
-            if tab.tab_type == TabType::File {
-                tab.path.as_ref()
-            } else {
-                None
-            }
-        })
-    }
+    let tab = Tab {
+      id,
+      name: "AsterIDE::Search".to_string(),
+      path: None,
+      editor: Editor::new(),
+      is_modified: false,
+      tab_type: TabType::SearchResults,
+    };
 
-    pub fn is_file_modified(&self, path: &PathBuf) -> bool {
-        self.tabs.iter().any(|tab| {
-            tab.tab_type == TabType::File
-                && tab.path.as_ref() == Some(path)
-                && tab.is_modified
-        })
-    }
+    self.tabs.push(tab);
+    self.active_tab = self.tabs.len() - 1;
+  }
 
-    pub fn new_tab(&mut self) {
-        let id = self.next_id;
-        self.next_id += 1;
+  pub fn open_file(&mut self, path: PathBuf, content: String) {
+    self.open_file_internal(path, content, true);
+  }
 
-        let tab = Tab {
-            id,
-            name: format!("untitled-{}", id),
-            path: None,
-            editor: Editor::new(),
-            is_modified: false,
-            tab_type: TabType::File,
-        };
+  pub fn open_file_in_background(&mut self, path: PathBuf, content: String) {
+    self.open_file_internal(path, content, false);
+  }
 
-        self.tabs.push(tab);
-        self.active_tab = self.tabs.len() - 1;
-    }
-
-    pub fn open_settings_tab(&mut self) {
-        for (i, tab) in self.tabs.iter().enumerate() {
-            if tab.tab_type == TabType::Settings {
-                self.active_tab = i;
-                return;
-            }
-        }
-
-        let id = self.next_id;
-        self.next_id += 1;
-
-        let tab = Tab {
-            id,
-            name: "AsterIDE::Settings".to_string(),
-            path: None,
-            editor: Editor::new(),
-            is_modified: false,
-            tab_type: TabType::Settings,
-        };
-
-        self.tabs.push(tab);
-        self.active_tab = self.tabs.len() - 1;
-    }
-
-    pub fn open_search_tab(&mut self) {
-        for (i, tab) in self.tabs.iter().enumerate() {
-            if tab.tab_type == TabType::SearchResults {
-                self.active_tab = i;
-                return;
-            }
-        }
-
-        let id = self.next_id;
-        self.next_id += 1;
-
-        let tab = Tab {
-            id,
-            name: "AsterIDE::Search".to_string(),
-            path: None,
-            editor: Editor::new(),
-            is_modified: false,
-            tab_type: TabType::SearchResults,
-        };
-
-        self.tabs.push(tab);
-        self.active_tab = self.tabs.len() - 1;
-    }
-
-    pub fn open_file(&mut self, path: PathBuf, content: String) {
-        self.open_file_internal(path, content, true);
-    }
-
-    pub fn open_file_in_background(&mut self, path: PathBuf, content: String) {
-        self.open_file_internal(path, content, false);
-    }
-
-    fn open_file_internal(&mut self, path: PathBuf, content: String, switch_to_tab: bool) {
-        for (i, tab) in self.tabs.iter().enumerate() {
-            if tab.tab_type == TabType::File && tab.path.as_ref() == Some(&path) {
-                if switch_to_tab {
-                    self.active_tab = i;
-                }
-                return;
-            }
-        }
-
-        let id = self.next_id;
-        self.next_id += 1;
-
-        let name = path
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_else(|| "untitled".to_string());
-
-        let mut editor = Editor::new();
-        editor.buffer = editor::Buffer::from_str(&content);
-
-        let tab = Tab {
-            id,
-            name,
-            path: Some(path),
-            editor,
-            is_modified: false,
-            tab_type: TabType::File,
-        };
-
-        self.tabs.push(tab);
+  fn open_file_internal(&mut self, path: PathBuf, content: String, switch_to_tab: bool) {
+    for (i, tab) in self.tabs.iter().enumerate() {
+      if tab.tab_type == TabType::File && tab.path.as_ref() == Some(&path) {
         if switch_to_tab {
-            self.active_tab = self.tabs.len() - 1;
+          self.active_tab = i;
         }
+        return;
+      }
     }
 
-    pub fn close_tab(&mut self, index: usize) {
-        if index < self.tabs.len() {
-            self.tabs.remove(index);
-            if !self.tabs.is_empty() && self.active_tab >= self.tabs.len() {
-                self.active_tab = self.tabs.len() - 1;
-            }
-        }
-    }
+    let id = self.next_id;
+    self.next_id += 1;
 
-    pub fn close_active_tab(&mut self) {
-        self.close_tab(self.active_tab);
-    }
+    let name = path
+      .file_name()
+      .map(|n| n.to_string_lossy().to_string())
+      .unwrap_or_else(|| "untitled".to_string());
 
-    pub fn set_active(&mut self, index: usize) {
-        if index < self.tabs.len() {
-            self.active_tab = index;
-        }
-    }
+    let mut editor = Editor::new();
+    editor.buffer = editor::Buffer::from_str(&content);
 
-    pub fn active_tab(&self) -> Option<&Tab> {
-        if self.tabs.is_empty() {
-            None
-        } else {
-            self.tabs.get(self.active_tab)
-        }
-    }
+    let tab = Tab {
+      id,
+      name,
+      path: Some(path),
+      editor,
+      is_modified: false,
+      tab_type: TabType::File,
+    };
 
-    pub fn active_tab_mut(&mut self) -> Option<&mut Tab> {
-        if self.tabs.is_empty() {
-            None
-        } else {
-            self.tabs.get_mut(self.active_tab)
-        }
+    self.tabs.push(tab);
+    if switch_to_tab {
+      self.active_tab = self.tabs.len() - 1;
     }
+  }
 
-    pub fn current_editor(&self) -> Option<&Editor> {
-        self.active_tab().map(|t| &t.editor)
+  pub fn close_tab(&mut self, index: usize) {
+    if index < self.tabs.len() {
+      self.tabs.remove(index);
+      if !self.tabs.is_empty() && self.active_tab >= self.tabs.len() {
+        self.active_tab = self.tabs.len() - 1;
+      }
     }
+  }
 
-    pub fn current_editor_mut(&mut self) -> Option<&mut Editor> {
-        self.active_tab_mut().map(|t| &mut t.editor)
-    }
+  pub fn close_active_tab(&mut self) {
+    self.close_tab(self.active_tab);
+  }
 
-    pub fn iter(&self) -> impl Iterator<Item = &Tab> {
-        self.tabs.iter()
+  pub fn set_active(&mut self, index: usize) {
+    if index < self.tabs.len() {
+      self.active_tab = index;
     }
+  }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Tab> {
-        self.tabs.iter_mut()
+  pub fn active_tab(&self) -> Option<&Tab> {
+    if self.tabs.is_empty() {
+      None
+    } else {
+      self.tabs.get(self.active_tab)
     }
+  }
 
-    pub fn update_tab_path(&mut self, old_path: &PathBuf, new_path: PathBuf) {
-        for tab in &mut self.tabs {
-            if tab.tab_type == TabType::File && tab.path.as_ref() == Some(old_path) {
-                tab.path = Some(new_path.clone());
-                tab.name = new_path
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "untitled".to_string());
-            }
-        }
+  pub fn active_tab_mut(&mut self) -> Option<&mut Tab> {
+    if self.tabs.is_empty() {
+      None
+    } else {
+      self.tabs.get_mut(self.active_tab)
     }
+  }
+
+  pub fn current_editor(&self) -> Option<&Editor> {
+    self.active_tab().map(|t| &t.editor)
+  }
+
+  pub fn current_editor_mut(&mut self) -> Option<&mut Editor> {
+    self.active_tab_mut().map(|t| &mut t.editor)
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item = &Tab> {
+    self.tabs.iter()
+  }
+
+  pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Tab> {
+    self.tabs.iter_mut()
+  }
+
+  pub fn update_tab_path(&mut self, old_path: &PathBuf, new_path: PathBuf) {
+    for tab in &mut self.tabs {
+      if tab.tab_type == TabType::File && tab.path.as_ref() == Some(old_path) {
+        tab.path = Some(new_path.clone());
+        tab.name = new_path
+          .file_name()
+          .map(|n| n.to_string_lossy().to_string())
+          .unwrap_or_else(|| "untitled".to_string());
+      }
+    }
+  }
 }
 
 impl Default for TabManager {
-    fn default() -> Self {
-        Self::new()
-    }
+  fn default() -> Self {
+    Self::new()
+  }
 }

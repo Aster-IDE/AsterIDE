@@ -59,7 +59,8 @@ mkShell rec {
     clang
     create-dmg
     just
-  ] ++ lib.optionals stdenv.isLinux [
+  ]
+  ++ lib.optionals stdenv.isLinux [
     glib
     vscode
   ];

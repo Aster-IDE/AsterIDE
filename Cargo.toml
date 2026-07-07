@@ -1,16 +1,16 @@
 [workspace]
 members = [
-    "xtask",
-    "crates/command_palette",
-    "crates/core",
-    "crates/editor",
-    "crates/lsp",
-    "crates/plugins",
-    "crates/search",
-    "crates/settings",
-    "crates/shared",
-    "crates/tabs",
-    "crates/theme"
+  "xtask",
+  "crates/command_palette",
+  "crates/core",
+  "crates/editor",
+  "crates/lsp",
+  "crates/plugins",
+  "crates/search",
+  "crates/settings",
+  "crates/shared",
+  "crates/tabs",
+  "crates/theme",
 ]
 
 resolver = "3"

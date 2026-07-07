@@ -1,12 +1,15 @@
-use serde::{Deserialize, Serialize};
+use serde::{
+  Deserialize,
+  Serialize,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LspSettings {
-    // placeholder
+  // placeholder
 }
 
 impl Default for LspSettings {
-    fn default() -> Self {
-        Self {}
-    }
+  fn default() -> Self {
+    Self {}
+  }
 }

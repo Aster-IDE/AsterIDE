@@ -1,6 +1,6 @@
 {
   pkgs,
-  inputs
+  inputs,
 }:
 (inputs.treefmt-nix.lib.evalModule pkgs (_: {
   projectRootFile = ".git/config";
@@ -20,4 +20,4 @@
       ];
     };
   };
-})).config.build
+})).config.build.wrapper
