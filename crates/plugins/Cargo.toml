@@ -4,3 +4,6 @@ edition = "2024"
 version.workspace = true
 
 [dependencies]
+# The pluggable syntax-highlighting spine, published to crates.io by pleme-io
+# (https://github.com/pleme-io/hikari). Referenced, never vendored.
+hikari-core = "0.1"
