@@ -18,14 +18,7 @@
       devShells = forAllSystems (
         system:
         let
-          pkgs = import nixpkgs {
-            inherit system;
-            config.allowUnfreePredicate =
-              pkg:
-              builtins.elem (nixpkgs.lib.getName pkg) [
-                "vscode"
-              ];
-          };
+          pkgs = import nixpkgs { inherit system; };
         in
         rec {
           asteride = pkgs.callPackage ./nix/devShell.nix { inherit inputs; };

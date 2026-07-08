@@ -1,6 +1,7 @@
 {
   lib,
   pkgs,
+  stdenv,
   inputs,
   pkg-config,
   libglvnd,
@@ -13,7 +14,13 @@
   libxkbcommon,
 }:
 let
-  craneLib = inputs.crane.mkLib pkgs;
+  inherit (inputs)fenix crane;
+
+  toolchain = with fenix.packages.${stdenv.system}; combine [
+    latest.toolchain
+  ];
+  
+  craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
 
   buildDeps = [
     pkg-config
