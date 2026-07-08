@@ -1,58 +1,28 @@
 {
-  lib,
-  stdenv,
-  rustPlatform,
-  cargo,
-  rustc,
+  pkgs,
+  eframe,
+  src,
 }:
-# IMPORTANT: broken, need to change it to get a binary.
-stdenv.mkDerivation (finalAttrs: {
+# Builds the AsterIDE Rust binary (`asteride`, crates/core) via substrate's
+# eframe/egui build kit. Version is read from the workspace Cargo.toml
+# ([workspace.package]); native deps (X11/wayland/vulkan/GL on Linux,
+# apple-sdk on macOS) come from the kit.
+#
+# NOTE: the macOS `.app` / `.dmg` / `.pkg` bundles are intentionally NOT built
+# here — they require the full Xcode toolchain (xcodebuild), which is not in
+# nixpkgs and cannot run inside the Nix sandbox. Those live in the justfile
+# (`just create-mac-app` / `create-mac-installers`), which the CI job drives
+# via `nix develop -c just ci-publish-macos`. This derivation is the portable
+# binary that the Xcode project embeds and that Linux/Windows/FreeBSD ship.
+eframe.mkPackage {
   pname = "asteride";
-  version = (fromTOML (builtins.readFile ../Version.toml)).version;
-  src = ../.;
+  inherit src;
 
-  __noChroot = true;
-
-  nativeBuildInputs = [
-    cargo
-    rustc
-    rustPlatform.cargoSetupHook
-  ];
-
-  cargoDeps = rustPlatform.importCargoLock {
-    lockFile = ../Cargo.lock;
+  meta = with pkgs.lib; {
+    description = "A simple text editor written in Rust";
+    homepage = "https://github.com/Aster-IDE/AsterIDE";
+    license = licenses.gpl3Only;
+    mainProgram = "asteride";
+    platforms = platforms.unix;
   };
-
-  buildPhase = ''
-    runHook preBuild
-
-    cargo build --release --offline --target-dir target
-
-    xcodebuild \
-      -project macApp/macApp.xcodeproj \
-      -target asteride \
-      -configuration Release \
-      -derivedDataPath build/DerivedData \
-      CODE_SIGNING_ALLOWED=NO \
-      build
-
-    runHook postBuild
-  '';
-
-  installPhase = ''
-    runHook preInstall
-    mkdir -p $out/Applications
-    cp -R build/DerivedData/Build/Products/Release/asteride.app $out/Applications/
-    mkdir -p $out/bin
-    ln -sf $out/Applications/asteride.app/Contents/MacOS/asteride $out/bin/asteride
-    runHook postInstall
-  '';
-
-  meta = with lib; {
-    description = "A Simple Text Editor written in Rust.";
-    homepage = "https://github.com/playfairs/AsterIDE";
-    license = licenses.gpl3;
-    maintainers = [ ];
-    platforms = platforms.darwin;
-  };
-})
+}
