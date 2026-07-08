@@ -4,6 +4,7 @@ members = [
   "crates/command_palette",
   "crates/core",
   "crates/editor",
+  "crates/hikari-core",
   "crates/lsp",
   "crates/plugins",
   "crates/search",

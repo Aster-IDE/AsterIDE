@@ -4,3 +4,4 @@ edition = "2024"
 version.workspace = true
 
 [dependencies]
+hikari-core = { path = "../hikari-core" }

@@ -1,0 +1,12 @@
+[package]
+name = "hikari-core"
+edition = "2024"
+version.workspace = true
+description = "hikari (光) — pluggable syntax-highlighting spine. Vendored M0 proving ground; destination is the fleet-shared pleme-io/hikari (see pleme-io/theory/HIKARI.md)."
+license = "MIT"
+
+# M0 is std-only: the spine + hand-rolled table-driven lexers, zero
+# dependencies, so AsterIDE's nix build (importCargoLock) stays clean. The
+# tree-sitter backend (hikari-ts over escriba-ts) and the macro-generated
+# (deflexer) backend land in M1/M2 once hikari is extracted to its own repo.
+[dependencies]

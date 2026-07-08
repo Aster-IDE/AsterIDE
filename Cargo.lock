@@ -259,11 +259,11 @@ dependencies = [
  "editor",
  "eframe",
  "egui",
- "egui_code_editor",
  "grep",
  "grep-regex",
  "grep-searcher",
  "image",
+ "plugins",
  "rfd",
  "search",
  "serde",
@@ -1037,15 +1037,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "egui_code_editor"
-version = "0.2.24"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3633490f8dd567bba6daad40d8e33c69fab4c00bdc075cd19bd0028543c888c2"
-dependencies = [
- "egui",
-]
-
-[[package]]
 name = "egui_glow"
 version = "0.34.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1704,6 +1695,10 @@ name = "hexf-parse"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
+
+[[package]]
+name = "hikari-core"
+version = "1.7.0"
 
 [[package]]
 name = "icu_collections"
@@ -2734,6 +2729,9 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 [[package]]
 name = "plugins"
 version = "1.7.0"
+dependencies = [
+ "hikari-core",
+]
 
 [[package]]
 name = "png"
