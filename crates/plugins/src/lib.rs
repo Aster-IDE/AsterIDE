@@ -1,6 +1,54 @@
-// Plugin system for AsterIDE
+//! Plugin system for `AsterIDE`.
+//!
+//! Hosts the hikari (光) syntax-highlighting registry — the batteries-included
+//! `Ecosystem` of language plugins from the published `hikari-core` crate
+//! (<https://github.com/pleme-io/hikari>). This is the seam: the editor
+//! resolves a file path to a `Box<dyn Highlighter>` through here. hikari is a
+//! fleet-shared dependency, not vendored — new language backends land upstream
+//! in hikari and arrive on the next version bump.
 
-pub fn init() {
-  // TODO: Implement plugin system
-  // placeholder so cargo doesn't cry about this crate being empty
+pub use hikari_core::{
+    ByteSpan, Ecosystem, HighlightSpan, Highlighter, HlClass, Language, NordTheme, Rgb, Theme,
+};
+
+/// The `AsterIDE` language registry: the batteries-included hikari `Ecosystem`
+/// plus the default (Nord) theme.
+pub struct LanguageRegistry {
+    ecosystem: Ecosystem,
+    theme: NordTheme,
+}
+
+impl Default for LanguageRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl LanguageRegistry {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            ecosystem: Ecosystem::with_builtins(),
+            theme: NordTheme,
+        }
+    }
+
+    /// The set of languages the editor can currently highlight.
+    #[must_use]
+    pub fn languages(&self) -> Vec<Language> {
+        self.ecosystem.languages()
+    }
+
+    /// Resolve a file path (or name) to its highlighter — plain text if the
+    /// language is unknown (never a panic, never "everything is Rust").
+    #[must_use]
+    pub fn highlighter_for_path(&self, path: &str) -> Box<dyn Highlighter> {
+        self.ecosystem.highlighter_for_path(path)
+    }
+
+    /// The active theme's color for a highlight class.
+    #[must_use]
+    pub fn color(&self, class: HlClass) -> Rgb {
+        self.theme.color(class)
+    }
 }
