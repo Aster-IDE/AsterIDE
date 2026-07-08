@@ -1,16 +1,18 @@
 {
   description = "AsterIDE Development Environment";
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/26.05";
     treefmt-nix.url = "github:numtide/treefmt-nix";
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    crane.url = "github:ipetkov/crane";
   };
   outputs =
-    { nixpkgs, treefmt-nix, ... }:
+    { nixpkgs, ... }@inputs:
     let
       forAllSystems = nixpkgs.lib.genAttrs nixpkgs.lib.systems.flakeExposed;
-      inputs = {
-        inherit nixpkgs treefmt-nix;
-      };
     in
     {
       devShells = forAllSystems (
@@ -26,7 +28,7 @@
           };
         in
         rec {
-          asteride = pkgs.callPackage ./nix/devShell.nix { };
+          asteride = pkgs.callPackage ./nix/devShell.nix { inherit inputs; };
           default = asteride;
         }
       );
@@ -37,7 +39,7 @@
           pkgs = import nixpkgs { inherit system; };
         in
         rec {
-          asteride = pkgs.callPackage ./nix/buildPackage.nix { };
+          asteride = pkgs.callPackage ./nix/buildPackage.nix { inherit inputs;};
           default = asteride;
         }
       );

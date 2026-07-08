@@ -1,58 +1,50 @@
 {
   lib,
-  stdenv,
-  rustPlatform,
-  cargo,
-  rustc,
+  pkgs,
+  inputs,
+  pkg-config,
+  libglvnd,
+  freetype,
+  fontconfig,
+  libX11,
+  libxcb,
+  libxcb-wm,
+  libxcursor,
+  libxkbcommon,
 }:
-# IMPORTANT: broken, need to change it to get a binary.
-stdenv.mkDerivation (finalAttrs: {
-  pname = "asteride";
-  version = (fromTOML (builtins.readFile ../Version.toml)).version;
-  src = ../.;
+let
+  craneLib = inputs.crane.mkLib pkgs;
 
-  __noChroot = true;
-
-  nativeBuildInputs = [
-    cargo
-    rustc
-    rustPlatform.cargoSetupHook
+  buildDeps = [
+    pkg-config
+    libglvnd
+    freetype
+    fontconfig
+    libX11
+    libxcb
+    libxcb-wm
+    libxcursor
+    libxkbcommon
   ];
 
-  cargoDeps = rustPlatform.importCargoLock {
-    lockFile = ../Cargo.lock;
+  commonArgs = {
+    pname = "asteride";
+    version = "0.1.0";
+    src = craneLib.cleanCargoSource ../.;
+    strictDeps = true;
+    nativeBuildInputs = buildDeps;
+    buildInputs = buildDeps;
   };
 
-  buildPhase = ''
-    runHook preBuild
-
-    cargo build --release --offline --target-dir target
-
-    xcodebuild \
-      -project macApp/macApp.xcodeproj \
-      -target asteride \
-      -configuration Release \
-      -derivedDataPath build/DerivedData \
-      CODE_SIGNING_ALLOWED=NO \
-      build
-
-    runHook postBuild
-  '';
-
-  installPhase = ''
-    runHook preInstall
-    mkdir -p $out/Applications
-    cp -R build/DerivedData/Build/Products/Release/asteride.app $out/Applications/
-    mkdir -p $out/bin
-    ln -sf $out/Applications/asteride.app/Contents/MacOS/asteride $out/bin/asteride
-    runHook postInstall
-  '';
+  cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+in
+craneLib.buildPackage (commonArgs // {
+  inherit cargoArtifacts;
 
   meta = with lib; {
     description = "A Simple Text Editor written in Rust.";
     homepage = "https://github.com/playfairs/AsterIDE";
     license = licenses.gpl3;
-    maintainers = [ ];
-    platforms = platforms.darwin;
+    maintainers = [ "Invra <identificationsucks@gmail.com>" ];
   };
 })

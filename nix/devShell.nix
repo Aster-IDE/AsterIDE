@@ -28,6 +28,7 @@
   vscode,
   just,
   create-dmg,
+  ... # capture inputs
 }:
 mkShell rec {
   meta.license = lib.licenses.unlicense;
