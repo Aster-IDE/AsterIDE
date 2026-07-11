@@ -18,4 +18,4 @@ default-members = [ "crates/core" ]
 resolver = "3"
 
 [workspace.package]
-version = "1.7.1"
+version = "1.7.2"
