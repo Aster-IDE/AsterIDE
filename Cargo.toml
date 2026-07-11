@@ -13,6 +13,8 @@ members = [
   "crates/theme",
 ]
 
+default-members = [ "crates/core" ]
+
 resolver = "3"
 
 [workspace.package]

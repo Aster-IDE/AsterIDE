@@ -1,5 +1,5 @@
 {
-  mkShell,
+  pkgs,
   lib,
   libx11,
   libice,
@@ -14,22 +14,26 @@
   vulkan-loader,
   wayland,
   libxkbcommon,
-  libxkbcommon_8,
   pkg-config,
   libxcb,
-  xcbutil,
+  libxcb-util,
   libxcursor,
-  cargo,
-  rustfmt,
-  clippy,
   clang,
-  rust-analyzer,
   glib,
-  vscode,
   just,
   create-dmg,
+  inputs
 }:
-mkShell rec {
+let
+  inherit (inputs)fenix crane;
+
+  toolchain = with fenix.packages.${stdenv.system}; combine [
+    latest.toolchain
+  ];
+  
+  craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
+in
+craneLib.devShell rec {
   meta.license = lib.licenses.unlicense;
   runtimeLibs = lib.optionals stdenv.isLinux [
     expat
@@ -47,30 +51,25 @@ mkShell rec {
     libxrandr
     libxcursor
     libxcb
-    xcbutil
+    libxcb-util
   ];
 
   buildInputs = [
-    cargo
-    rustfmt
-    clippy
-    rust-analyzer
-    pkg-config
     clang
-    create-dmg
     just
+  ]
+  ++ lib.optionals stdenv.isDarwin [
+    create-dmg
   ]
   ++ lib.optionals stdenv.isLinux [
     glib
-    vscode
   ];
 
   nativeBuildInputs = lib.optionals stdenv.isLinux [
     pkg-config
     libxcb
-    xcbutil
+    libxcb-util
     libxkbcommon
-    libxkbcommon_8
   ];
 
   LD_LIBRARY_PATH = lib.makeLibraryPath runtimeLibs;
