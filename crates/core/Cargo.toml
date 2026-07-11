@@ -29,10 +29,10 @@ search = { path = "../search" }
 settings = { path = "../settings" }
 tabs = { path = "../tabs" }
 theme = { path = "../theme" }
+plugins = { path = "../plugins" }
 
 eframe = "0.34.1"
 egui = "0.34.1"
-egui_code_editor = "0.2"
 rfd = "0.14"
 walkdir = "2.5"
 serde = { version = "1.0", features = ["derive"] }

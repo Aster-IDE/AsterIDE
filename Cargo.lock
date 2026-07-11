@@ -252,18 +252,18 @@ dependencies = [
 
 [[package]]
 name = "asteride"
-version = "1.7.0"
+version = "1.7.1"
 dependencies = [
  "command_palette",
  "dirs",
  "editor",
  "eframe",
  "egui",
- "egui_code_editor",
  "grep",
  "grep-regex",
  "grep-searcher",
  "image",
+ "plugins",
  "rfd",
  "search",
  "serde",
@@ -723,7 +723,7 @@ dependencies = [
 
 [[package]]
 name = "command_palette"
-version = "1.7.0"
+version = "1.7.1"
 dependencies = [
  "egui",
  "theme",
@@ -934,7 +934,7 @@ dependencies = [
 
 [[package]]
 name = "editor"
-version = "1.7.0"
+version = "1.7.1"
 dependencies = [
  "eframe",
  "egui",
@@ -1034,15 +1034,6 @@ dependencies = [
  "web-time",
  "webbrowser",
  "winit",
-]
-
-[[package]]
-name = "egui_code_editor"
-version = "0.2.24"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3633490f8dd567bba6daad40d8e33c69fab4c00bdc075cd19bd0028543c888c2"
-dependencies = [
- "egui",
 ]
 
 [[package]]
@@ -1706,6 +1697,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
+name = "hikari-core"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "40c5d8f8ac8a62b1d1327a2d5b256c73198fc702be2ae2a7c5cce7a761e80691"
+
+[[package]]
 name = "icu_collections"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2041,7 +2038,7 @@ checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 
 [[package]]
 name = "lsp"
-version = "1.7.0"
+version = "1.7.1"
 
 [[package]]
 name = "malloc_buf"
@@ -2733,7 +2730,10 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "plugins"
-version = "1.7.0"
+version = "1.7.1"
+dependencies = [
+ "hikari-core",
+]
 
 [[package]]
 name = "png"
@@ -3139,7 +3139,7 @@ dependencies = [
 
 [[package]]
 name = "search"
-version = "1.7.0"
+version = "1.7.1"
 dependencies = [
  "egui",
  "regex",
@@ -3223,7 +3223,7 @@ dependencies = [
 
 [[package]]
 name = "settings"
-version = "1.7.0"
+version = "1.7.1"
 dependencies = [
  "dirs",
  "egui",
@@ -3446,7 +3446,7 @@ dependencies = [
 
 [[package]]
 name = "tabs"
-version = "1.7.0"
+version = "1.7.1"
 dependencies = [
  "editor",
 ]
@@ -3475,7 +3475,7 @@ dependencies = [
 
 [[package]]
 name = "theme"
-version = "1.7.0"
+version = "1.7.1"
 dependencies = [
  "egui",
  "serde",
@@ -4869,7 +4869,7 @@ checksum = "3ae8337f8a065cfc972643663ea4279e04e7256de865aa66fe25cec5fb912d3f"
 
 [[package]]
 name = "xtask"
-version = "1.7.0"
+version = "1.7.1"
 
 [[package]]
 name = "yoke"

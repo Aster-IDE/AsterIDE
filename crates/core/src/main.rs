@@ -4,6 +4,8 @@
 )]
 #![allow(deprecated)]
 
+mod highlight;
+
 use command_palette::CommandPalette;
 use eframe::egui;
 use serde::{
@@ -53,6 +55,10 @@ struct AsterIDE {
   recent_files: Vec<RecentFile>,
   renaming_path: Option<(std::path::PathBuf, String)>,
   initial_path: Option<std::path::PathBuf>,
+  // hikari (光) syntax-highlighting registry — resolves the open file's
+  // language and drives per-language highlighting (crate `plugins` over the
+  // published `hikari-core`). Fixes the every-file-is-Rust bug.
+  syntax: plugins::LanguageRegistry,
 }
 
 #[derive(PartialEq)]
@@ -92,6 +98,7 @@ impl AsterIDE {
       recent_files,
       renaming_path: None,
       initial_path,
+      syntax: plugins::LanguageRegistry::new(),
     };
 
     // Pinned files open on startup
@@ -2087,6 +2094,17 @@ impl AsterIDE {
       }
     }
 
+    // Resolve the open file's language -> highlighter BEFORE the panel closure
+    // so the layouter owns it (no borrow of `self` inside the closure). hikari
+    // picks the language from the path; an unknown extension falls back to
+    // plain text — never "everything is Rust".
+    let path_str = self
+      .tabs
+      .active_tab_path()
+      .map(|p| p.display().to_string())
+      .unwrap_or_default();
+    let highlighter = self.syntax.highlighter_for_path(&path_str);
+
     egui::CentralPanel::default()
       .frame(egui::Frame::central_panel(&ctx.global_style()).fill(CherryBlossomTheme::bg_darkest()))
       .show(ctx, |ui| {
@@ -2094,23 +2112,33 @@ impl AsterIDE {
         let mut new_text = content.clone();
 
         let editor_id = ui.id().with("code_editor");
+
+        // hikari-driven layouter: classify + color every byte through the
+        // TextEdit's own layout hook.
+        let mut layouter =
+          |ui: &egui::Ui, buf: &dyn egui::TextBuffer, _wrap_width: f32| {
+            let job = highlight::layout_job(buf.as_str(), highlighter.as_ref(), font_size);
+            ui.fonts_mut(|f| f.layout_job(job))
+          };
+
+        let mut scroll = egui::ScrollArea::both().id_salt(editor_id).auto_shrink([false, false]);
         if let Some(scroll_offset) = target_scroll_offset {
-          ui.ctx().memory_mut(|mem| {
-            mem
-              .data
-              .insert_temp(editor_id.with("scroll_offset"), scroll_offset);
-          });
+          scroll = scroll.vertical_scroll_offset(scroll_offset);
         }
 
-        let mut editor = egui_code_editor::CodeEditor::default()
-          .id_source("code_editor")
-          .with_fontsize(font_size)
-          .with_theme(egui_code_editor::ColorTheme::SONOKAI)
-          .vscroll(true);
+        let response = scroll
+          .show(ui, |ui| {
+            ui.add(
+              egui::TextEdit::multiline(&mut new_text)
+                .id(editor_id)
+                .code_editor()
+                .desired_width(f32::INFINITY)
+                .layouter(&mut layouter),
+            )
+          })
+          .inner;
 
-        let response = editor.show(ui, &mut new_text);
-
-        if response.response.has_focus() {
+        if response.has_focus() {
           self.editor_had_focus = true;
         }
 
