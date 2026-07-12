@@ -1,21 +1,29 @@
 [workspace]
 members = [
   "xtask",
-  "crates/command_palette",
-  "crates/core",
-  "crates/editor",
-  "crates/lsp",
-  "crates/plugins",
-  "crates/search",
-  "crates/settings",
-  "crates/shared",
-  "crates/tabs",
-  "crates/theme",
+  "asteride",
+
+  # pre-2.0 stuff, keep this for now i guess just commented out.
+  # "crates/command_palette",
+  # "crates/core",
+  # "crates/editor",
+  # "crates/lsp",
+  # "crates/plugins",
+  # "crates/search",
+  # "crates/settings",
+  # "crates/shared",
+  # "crates/tabs",
+  # "crates/theme",
 ]
 
-default-members = [ "crates/core" ]
-
+default-members = [ "asteride" ]
 resolver = "3"
 
 [workspace.package]
-version = "1.7.2"
+edition = "2024"
+version = "2.0.0"
+license = "Apache-2.0"
+authors = [
+  "playfairs <root@playfairs.cc>",
+  "Invra <identificationsucks@gmail.com>"
+]
