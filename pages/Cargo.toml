@@ -1,6 +1,6 @@
 [package]
-name = "asteride"
-description = "An IDE"
+name = "pages"
+description = "Crate containing different layouts/pages"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,8 +8,4 @@ version.workspace = true
 
 [dependencies]
 iced.workspace = true
-tokio.workspace = true
-image.workspace = true
-pages.workspace = true
-elements.workspace = true
 lucide-icons.workspace = true
