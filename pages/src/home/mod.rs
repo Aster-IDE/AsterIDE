@@ -3,6 +3,7 @@ use iced::{
     widget::{button, column, container, row, text},
 };
 use lucide_icons::Icon;
+use rfd::FileDialog;
 
 const LUCIDE_FONT: Font = Font::with_name("lucide");
 
@@ -27,8 +28,20 @@ impl Home {
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::OpenFolder => Task::none(),
-            Message::OpenFile => Task::none(),
+            Message::OpenFolder => {
+                if let Some(dir) = FileDialog::new().pick_folder() {
+                    println!("{dir:#?}")
+                };
+
+                Task::none()
+            }
+            Message::OpenFile => {
+                if let Some(file) = FileDialog::new().pick_file() {
+                    println!("{file:#?}")
+                };
+
+                Task::none()
+            }
             Message::NewFile => Task::none(),
         }
     }

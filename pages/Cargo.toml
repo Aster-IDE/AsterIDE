@@ -7,5 +7,6 @@ license.workspace = true
 version.workspace = true
 
 [dependencies]
+rfd.workspace = true
 iced.workspace = true
 lucide-icons.workspace = true
