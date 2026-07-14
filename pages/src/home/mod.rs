@@ -95,7 +95,7 @@ fn nav_button<'a>(icon: Icon, display: &'a str, message: Message) -> Element<'a,
         .style(|theme, status| {
             let mut style = button::primary(theme, status);
             style.border = iced::Border {
-                radius: 8.0.into(),
+                radius: 5.0.into(),
                 ..style.border
             };
             style
