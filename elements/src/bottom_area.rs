@@ -57,11 +57,24 @@ impl BottomArea {
                     format!("AsterIDE v{}", env!("CARGO_PKG_VERSION")).into(),
                     TextType::Attention
                 ),
-                bar_text(title, TextType::Readable),
-                bar_text(description, TextType::Muted),
+                container(Space::new().height(Length::Fill).width(1)).style(|theme: &Theme| {
+                    let palette = theme.extended_palette();
+
+                    container::Style {
+                        background: Some(palette.secondary.weak.color.into()),
+                        ..Default::default()
+                    }
+                }),
+                container(
+                    row![
+                        bar_text(title, TextType::Readable),
+                        bar_text(description, TextType::Muted),
+                    ]
+                    .spacing(5)
+                ),
                 Space::new().width(Length::Fill)
             ]
-            .spacing(10),
+            .spacing(15),
         )
         .style(|theme: &Theme| {
             let palette = theme.extended_palette();
@@ -74,11 +87,12 @@ impl BottomArea {
         .padding(Padding {
             left: 15.0,
             right: 15.0,
-            ..Default::default()
+            top: 8.0,
+            bottom: 8.0,
         })
         .center_y(Length::Fill)
         .width(Length::Fill)
-        .height(45)
+        .height(35)
         .into()
     }
 
@@ -100,6 +114,8 @@ pub fn bar_text(display: String, text_type: TextType) -> Element<'static, Messag
                 }),
             }
         })
-        .size(17)
+        .height(Length::Fill)
+        .center()
+        .size(12)
         .into()
 }
