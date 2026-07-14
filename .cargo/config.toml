@@ -1,3 +1,5 @@
 [alias]
 xtask = "run --package xtask --release --"
 xtask-debug = "run --package xtask --"
+a = "run --package asteride --"
+ar = "run --package asteride -r --"
