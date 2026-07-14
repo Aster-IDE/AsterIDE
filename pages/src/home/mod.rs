@@ -87,7 +87,7 @@ impl Home {
 }
 
 fn nav_button<'a>(icon: Icon, display: &'a str, message: Message) -> Element<'a, Message> {
-    button(row![icon_text(icon), text(display)].spacing(10))
+    button(row![icon_text(icon), text(display).height(Length::Fill).center()].spacing(10))
         .on_press(message)
         .padding(10)
         .height(45)
