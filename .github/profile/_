@@ -1,0 +1,53 @@
+                           AsterIDE Project Notes
+                            Version 1.0, July 2026
+
+                      GENERAL INFORMATION AND GUIDELINES
+
+    1. Purpose.
+
+    This file exists as a lightweight repository notebook. It may contain
+    project notes, architectural ideas, implementation reminders, or
+    temporary information that does not belong in the documentation.
+
+    2. Goals.
+
+    The long-term goals of AsterIDE are:
+
+    (a) simplicity over feature count
+
+    (b) predictable behavior
+
+    (c) low resource usage
+
+    (d) portability across supported platforms (even android)
+
+    (e) maintainable and readable source code
+
+    3. Architecture.
+
+    When adding new functionality, contributors should prefer extending
+    existing systems before introducing entirely new ones.
+
+    Complex solutions should only be used when simpler alternatives have
+    been evaluated and found insufficient.
+
+    4. Notes.
+
+    This section may be freely updated during development with temporary
+    ideas, implementation plans, or reminders.
+
+    Example entries:
+
+    - investigate incremental rendering
+    - improve file tree performance
+    - profile startup time
+    - review editor command architecture
+
+    5. Miscellaneous.
+
+    Content contained within this file is informational only and does not
+    constitute project policy. Official project rules are documented in
+    CONTRIBUTING, SECURITY, LICENSE, CODE_OF_CONDUCT and other repository
+    documentation.
+
+    END OF PROJECT NOTES

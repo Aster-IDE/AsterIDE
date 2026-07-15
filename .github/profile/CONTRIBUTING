@@ -1,0 +1,125 @@
+                           Contributing to AsterIDE 🌸
+                              Version 1.1, July 2026
+
+      Thanks for your interest in contributing to AsterIDE. This project aims
+      to remain minimal, clean, and well-structured—so all contributions
+      should follow the guidelines below.
+
+   1. Development Environment.
+
+      It is strongly preferred to develop within the project's Nix
+      development shell.
+
+      This ensures:
+
+      (a) consistent dependencies
+      (b) reproducible builds
+      (c) standardized Rust toolchains
+      (d) avoidance of environment-specific issues
+
+      Enter the development environment with:
+
+      nix develop
+
+   2. Build System.
+
+      The canonical development environment shall consist of the following
+      components:
+
+      (a) flake.nix shall define the reproducible development environment
+
+      (b) Cargo shall serve as the primary package manager and build
+         interface
+
+      (c) Crane shall provide reproducible Nix-based build integration for
+         the Work
+
+      (d) the Rust toolchain shall be supplied through flake.nix
+
+   3. Commit Message Format.
+
+      All commits must follow this format:
+
+      type: <description>
+
+      Supported commit types:
+
+      create:  new files or features
+      update:  modifications to existing code
+      fix:     bug fixes
+      chore:   maintenance, cleanup, non-functional changes
+      remove:  deleting code or files
+      format:  formatting changes (no logic changes)
+      nix:     Nix configuration changes
+      rust:    Rust-specific improvements or refactors
+
+      Examples:
+
+      create: add buffer insert_char function
+      create: implement basic file loader
+
+      update: improve cursor movement logic
+      update: optimize buffer line insertion
+
+      fix: panic when inserting at end of line
+      fix: cursor overflow on empty buffer
+
+      chore: clean up unused imports
+      chore: reorganize project structure
+
+      remove: delete deprecated buffer module
+      remove: remove unused helper functions
+
+      format: apply rustfmt to entire project
+      format: fix indentation in editor module
+
+      nix: add dev shell with Rust toolchain
+      nix: update flake inputs and dependencies
+
+      rust: refactor editor struct initialization
+      rust: improve error handling with Result
+
+   4. Code Style.
+
+      (a) Use four (4) spaces for indentation
+      (b) Use snake_case for file names that require multi-word names
+      (c) The project is licensed under GPLv2
+      (d) Keep code minimal and readable
+      (e) Avoid unnecessary abstractions
+      (f) Prefer simple and explicit logic
+      (g) Maintain a clear separation between core and editor logic
+
+   5. Formatting.
+
+      Before pushing commits or opening a pull request, contributors shall
+      run:
+
+      nix fmt .
+
+      This ensures the repository remains consistently formatted.
+
+   6. Pull Requests.
+
+      (a) Keep pull requests focused and small
+      (b) Provide a clear description of changes and reasoning
+      (c) Ensure the project builds and runs before submitting
+
+   7. Testing (Future).
+
+      As the project evolves:
+
+      (a) tests will be required for core functionality
+      (b) avoid introducing breaking changes to existing behavior
+
+   8. Philosophy.
+
+      AsterIDE is built around:
+
+      (a) simplicity
+      (b) performance
+      (c) control
+
+      Any change that adds complexity must be justified and should include
+      consideration of simpler alternatives.
+
+   END OF CONTRIBUTING GUIDE
