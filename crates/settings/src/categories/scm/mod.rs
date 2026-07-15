@@ -1,15 +1,15 @@
 use serde::{
-  Deserialize,
-  Serialize,
+    Deserialize,
+    Serialize,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ScmSettings {
-  // placehodler
+    // placehodler
 }
 
 impl Default for ScmSettings {
-  fn default() -> Self {
-    Self {}
-  }
+    fn default() -> Self {
+        Self {}
+    }
 }

@@ -6,23 +6,23 @@ pub mod nord;
 pub mod rose_pine;
 
 pub use catppuccin::{
-  CatppuccinFrappé,
-  CatppuccinLatte,
-  CatppuccinMacchiato,
-  CatppuccinMocha,
+    CatppuccinFrappé,
+    CatppuccinLatte,
+    CatppuccinMacchiato,
+    CatppuccinMocha,
 };
 pub use cherry_blossom::{
-  CherryBlossomDark,
-  CherryBlossomLight,
+    CherryBlossomDark,
+    CherryBlossomLight,
 };
 pub use dracula::DraculaDark;
 pub use gruvbox::{
-  GruvboxDark,
-  GruvboxLight,
+    GruvboxDark,
+    GruvboxLight,
 };
 pub use nord::NordDark;
 pub use rose_pine::{
-  RosePine,
-  RosePineDawn,
-  RosePineMoon,
+    RosePine,
+    RosePineDawn,
+    RosePineMoon,
 };

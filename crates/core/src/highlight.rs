@@ -6,7 +6,13 @@
 //! the only egui coupling — lives in the consumer.
 
 use eframe::egui;
-use plugins::{HlClass, Highlighter, NordTheme, Rgb, Theme};
+use plugins::{
+    Highlighter,
+    HlClass,
+    NordTheme,
+    Rgb,
+    Theme,
+};
 
 fn color32(rgb: Rgb) -> egui::Color32 {
     egui::Color32::from_rgb(rgb.r, rgb.g, rgb.b)
@@ -17,7 +23,11 @@ fn color32(rgb: Rgb) -> egui::Color32 {
 /// no wrapping (the editor scrolls horizontally). Coverage is guaranteed by
 /// hikari's `SpanSink`, so every byte is colored exactly once.
 #[must_use]
-pub fn layout_job(text: &str, highlighter: &dyn Highlighter, font_size: f32) -> egui::text::LayoutJob {
+pub fn layout_job(
+    text: &str,
+    highlighter: &dyn Highlighter,
+    font_size: f32,
+) -> egui::text::LayoutJob {
     let theme = NordTheme;
     let font = egui::FontId::monospace(font_size);
     let mut job = egui::text::LayoutJob::default();

@@ -32,7 +32,7 @@
           pkgs = import nixpkgs { inherit system; };
         in
         rec {
-          asteride = pkgs.callPackage ./nix/buildPackage.nix { inherit inputs;};
+          asteride = pkgs.callPackage ./nix/buildPackage.nix { inherit inputs; };
           default = asteride;
         }
       );

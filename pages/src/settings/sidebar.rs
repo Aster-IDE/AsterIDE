@@ -1,6 +1,19 @@
 use crate::settings::SettingsPage;
-use iced::widget::{button, column, container, mouse_area, row, text};
-use iced::{Element, Font, Length, Task, Theme};
+use iced::widget::{
+    button,
+    column,
+    container,
+    mouse_area,
+    row,
+    text,
+};
+use iced::{
+    Element,
+    Font,
+    Length,
+    Task,
+    Theme,
+};
 use lucide_icons::Icon;
 
 const LUCIDE_FONT: Font = Font::with_name("lucide");

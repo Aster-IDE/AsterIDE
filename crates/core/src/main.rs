@@ -1,6 +1,6 @@
 #![cfg_attr(
-  all(target_os = "windows", not(debug_assertions)),
-  windows_subsystem = "windows"
+    all(target_os = "windows", not(debug_assertions)),
+    windows_subsystem = "windows"
 )]
 #![allow(deprecated)]
 
@@ -9,29 +9,29 @@ mod highlight;
 use command_palette::CommandPalette;
 use eframe::egui;
 use serde::{
-  Deserialize,
-  Serialize,
+    Deserialize,
+    Serialize,
 };
 use settings::Settings;
 use tabs::{
-  TabManager,
-  TabType,
+    TabManager,
+    TabType,
 };
 use theme::{
-  CherryBlossomTheme,
-  lerp_color,
+    CherryBlossomTheme,
+    lerp_color,
 };
 
 #[derive(Serialize, Deserialize, Default)]
 struct AppState {
-  recent_projects: Vec<std::path::PathBuf>,
-  recent_files: Vec<RecentFile>,
+    recent_projects: Vec<std::path::PathBuf>,
+    recent_files: Vec<RecentFile>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct RecentFile {
-  path: std::path::PathBuf,
-  project_dir: Option<std::path::PathBuf>,
+    path: std::path::PathBuf,
+    project_dir: Option<std::path::PathBuf>,
 }
 
 const MAX_RECENT_PROJECTS: usize = 10;
@@ -39,2443 +39,2490 @@ const MAX_RECENT_PROJECTS: usize = 10;
 const MAX_RECENT_FILES: usize = 10;
 
 struct AsterIDE {
-  tabs: TabManager,
-  settings: Settings,
-  sidebar_width: f32,
-  active_sidebar_tab: SidebarTab,
-  command_palette: CommandPalette,
-  status_message: String,
-  status_message_time: f64,
-  opened_folder: Option<std::path::PathBuf>,
-  expanded_folders: std::collections::HashSet<std::path::PathBuf>,
-  selected_folder: Option<std::path::PathBuf>,
-  editor_had_focus: bool,
-  editor_id: Option<egui::Id>,
-  recent_projects: Vec<std::path::PathBuf>,
-  recent_files: Vec<RecentFile>,
-  renaming_path: Option<(std::path::PathBuf, String)>,
-  initial_path: Option<std::path::PathBuf>,
-  // hikari (光) syntax-highlighting registry — resolves the open file's
-  // language and drives per-language highlighting (crate `plugins` over the
-  // published `hikari-core`). Fixes the every-file-is-Rust bug.
-  syntax: plugins::LanguageRegistry,
+    tabs: TabManager,
+    settings: Settings,
+    sidebar_width: f32,
+    active_sidebar_tab: SidebarTab,
+    command_palette: CommandPalette,
+    status_message: String,
+    status_message_time: f64,
+    opened_folder: Option<std::path::PathBuf>,
+    expanded_folders: std::collections::HashSet<std::path::PathBuf>,
+    selected_folder: Option<std::path::PathBuf>,
+    editor_had_focus: bool,
+    editor_id: Option<egui::Id>,
+    recent_projects: Vec<std::path::PathBuf>,
+    recent_files: Vec<RecentFile>,
+    renaming_path: Option<(std::path::PathBuf, String)>,
+    initial_path: Option<std::path::PathBuf>,
+    // hikari (光) syntax-highlighting registry — resolves the open file's
+    // language and drives per-language highlighting (crate `plugins` over the
+    // published `hikari-core`). Fixes the every-file-is-Rust bug.
+    syntax: plugins::LanguageRegistry,
 }
 
 #[derive(PartialEq)]
 enum SidebarTab {
-  Explorer,
-  Search,
-  Git,
-  Extensions,
+    Explorer,
+    Search,
+    Git,
+    Extensions,
 }
 
 impl Default for AsterIDE {
-  fn default() -> Self {
-    Self::new_with_path(None)
-  }
+    fn default() -> Self {
+        Self::new_with_path(None)
+    }
 }
 
 impl AsterIDE {
-  fn new_with_path(initial_path: Option<std::path::PathBuf>) -> Self {
-    let recent_projects = Self::load_recent_projects();
-    let recent_files = Self::load_recent_files();
-    let settings = Settings::load();
+    fn new_with_path(initial_path: Option<std::path::PathBuf>) -> Self {
+        let recent_projects = Self::load_recent_projects();
+        let recent_files = Self::load_recent_files();
+        let settings = Settings::load();
 
-    let mut asteride = Self {
-      tabs: TabManager::new(),
-      settings,
-      sidebar_width: 250.0,
-      active_sidebar_tab: SidebarTab::Explorer,
-      command_palette: CommandPalette::default(),
-      status_message: "Ready".to_string(),
-      status_message_time: 0.0,
-      opened_folder: None,
-      expanded_folders: std::collections::HashSet::new(),
-      selected_folder: None,
-      editor_had_focus: false,
-      editor_id: None,
-      recent_projects,
-      recent_files,
-      renaming_path: None,
-      initial_path,
-      syntax: plugins::LanguageRegistry::new(),
-    };
+        let mut asteride = Self {
+            tabs: TabManager::new(),
+            settings,
+            sidebar_width: 250.0,
+            active_sidebar_tab: SidebarTab::Explorer,
+            command_palette: CommandPalette::default(),
+            status_message: "Ready".to_string(),
+            status_message_time: 0.0,
+            opened_folder: None,
+            expanded_folders: std::collections::HashSet::new(),
+            selected_folder: None,
+            editor_had_focus: false,
+            editor_id: None,
+            recent_projects,
+            recent_files,
+            renaming_path: None,
+            initial_path,
+            syntax: plugins::LanguageRegistry::new(),
+        };
 
-    // Pinned files open on startup
-    // If a file is unpinned, it'll stay opened until next launch.
-    for pinned_file in asteride.settings.pinned_files.clone() {
-      if pinned_file.exists() {
-        if let Ok(content) = std::fs::read_to_string(&pinned_file) {
-          asteride.tabs.open_file(pinned_file, content);
-        }
-      }
-    }
-
-    asteride
-  }
-}
-
-impl AsterIDE {
-  fn config_dir() -> Option<std::path::PathBuf> {
-    dirs::config_dir().map(|d| d.join("asteride"))
-  }
-
-  fn state_file_path() -> Option<std::path::PathBuf> {
-    Self::config_dir().map(|d| d.join("state.json"))
-  }
-
-  fn load_recent_projects() -> Vec<std::path::PathBuf> {
-    if let Some(path) = Self::state_file_path() {
-      if let Ok(content) = std::fs::read_to_string(&path) {
-        if let Ok(state) = serde_json::from_str::<AppState>(&content) {
-          return state
-            .recent_projects
-            .into_iter()
-            .filter(|p| p.exists())
-            .take(MAX_RECENT_PROJECTS)
-            .collect();
-        }
-      }
-    }
-    Vec::new()
-  }
-
-  fn load_recent_files() -> Vec<RecentFile> {
-    if let Some(path) = Self::state_file_path() {
-      if let Ok(content) = std::fs::read_to_string(&path) {
-        if let Ok(state) = serde_json::from_str::<AppState>(&content) {
-          return state
-            .recent_files
-            .into_iter()
-            .filter(|f| f.path.exists())
-            .take(MAX_RECENT_FILES)
-            .collect();
-        }
-      }
-    }
-    Vec::new()
-  }
-
-  fn save_state(&self) {
-    if let Some(path) = Self::state_file_path() {
-      if let Some(dir) = path.parent() {
-        let _ = std::fs::create_dir_all(dir);
-      }
-      let state = AppState {
-        recent_projects: self.recent_projects.clone(),
-        recent_files: self.recent_files.clone(),
-      };
-      if let Ok(json) = serde_json::to_string_pretty(&state) {
-        let _ = std::fs::write(&path, json);
-      }
-    }
-  }
-
-  fn add_recent_file(&mut self, path: std::path::PathBuf) {
-    let project_dir = self.opened_folder.clone();
-    let recent = RecentFile { path, project_dir };
-    self.recent_files.retain(|f| f.path != recent.path);
-    self.recent_files.insert(0, recent);
-    if self.recent_files.len() > MAX_RECENT_FILES {
-      self.recent_files.truncate(MAX_RECENT_FILES);
-    }
-    self.save_state();
-  }
-
-  fn get_relevant_recent_files(&self) -> Vec<RecentFile> {
-    match &self.opened_folder {
-      Some(project) => self
-        .recent_files
-        .iter()
-        .filter(|f| f.project_dir.as_ref() == Some(project) && !self.tabs.is_file_open(&f.path))
-        .take(self.settings.recent_files_limit)
-        .cloned()
-        .collect(),
-      _ => self
-        .recent_files
-        .iter()
-        .filter(|f| f.project_dir.is_none() && !self.tabs.is_file_open(&f.path))
-        .take(self.settings.recent_files_limit)
-        .cloned()
-        .collect(),
-    }
-  }
-
-  fn set_status(&mut self, msg: String, _ctx: &egui::Context) {
-    self.status_message = msg;
-    self.status_message_time = std::time::SystemTime::now()
-      .duration_since(std::time::UNIX_EPOCH)
-      .unwrap_or_default()
-      .as_secs_f64();
-  }
-
-  fn find_scm_root(&self, path: &std::path::Path) -> Option<(String, std::path::PathBuf)> {
-    let mut current = if path.is_file() {
-      path.parent().unwrap_or(path)
-    } else {
-      path
-    };
-
-    loop {
-      if current.join(".git").exists() {
-        return Some(("Git".to_string(), current.to_path_buf()));
-      }
-      if current.join(".hg").exists() {
-        return Some(("Mercurial".to_string(), current.to_path_buf()));
-      }
-
-      match current.parent() {
-        Some(parent) if parent != current => current = parent,
-        _ => break,
-      }
-    }
-
-    None
-  }
-
-  fn get_scm_status(&self, path: &std::path::Path) -> Option<(String, String)> {
-    let (kind, root) = self.find_scm_root(path)?;
-    let (program, args) = if kind == "Git" {
-      ("git", vec!["status", "--short", "--branch"])
-    } else {
-      ("hg", vec!["status", "-A"])
-    };
-
-    let output = std::process::Command::new(program)
-      .arg("-C")
-      .arg(root.to_string_lossy().as_ref())
-      .args(args)
-      .output()
-      .ok()?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-
-    if !stdout.is_empty() {
-      Some((kind, stdout))
-    } else if !stderr.is_empty() {
-      Some((kind, stderr))
-    } else {
-      Some((kind, "No changes".to_string()))
-    }
-  }
-
-  fn should_ignore_dir(&self, path: &std::path::Path) -> bool {
-    if !self.settings.search_ignore_dirs_enabled {
-      return false;
-    }
-
-    let dir_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-
-    for pattern in self.settings.search_ignored_dirs.split(',') {
-      let pattern = pattern.trim();
-      if pattern.is_empty() {
-        continue;
-      }
-
-      if pattern.starts_with('*') && pattern.ends_with('*') && pattern.len() > 2 {
-        let middle = &pattern[1..pattern.len() - 1];
-        if dir_name.contains(middle) {
-          return true;
-        }
-      } else if pattern.starts_with('*') {
-        let suffix = &pattern[1..];
-        if dir_name.ends_with(suffix) {
-          return true;
-        }
-      } else if pattern.ends_with('*') {
-        let prefix = &pattern[..pattern.len() - 1];
-        if dir_name.starts_with(prefix) {
-          return true;
-        }
-      } else if dir_name == pattern {
-        return true;
-      }
-    }
-
-    false
-  }
-
-  fn open_file(&mut self, ctx: &egui::Context) {
-    if let Some(path) = rfd::FileDialog::new().pick_file() {
-      match std::fs::read_to_string(&path) {
-        Ok(content) => {
-          if !self
-            .settings
-            .request_file_open_with_confirmation(path.clone(), content.clone())
-          {
-            return;
-          }
-          self.tabs.open_file(path.clone(), content);
-          self.add_recent_file(path);
-          self.set_status(
-            format!(
-              "Opened: {}",
-              self
-                .tabs
-                .active_tab()
-                .map(|t| t.name.clone())
-                .unwrap_or_default()
-            ),
-            ctx,
-          );
-        }
-        Err(e) => {
-          self.set_status(format!("Error opening file: {}", e), ctx);
-        }
-      }
-    }
-  }
-
-  fn add_recent_project(&mut self, path: std::path::PathBuf) {
-    self.recent_projects.retain(|p| p != &path);
-    self.recent_projects.insert(0, path);
-    self.recent_projects.truncate(MAX_RECENT_PROJECTS);
-    self.save_state();
-  }
-
-  fn open_folder(&mut self, ctx: &egui::Context) {
-    if let Some(path) = rfd::FileDialog::new().pick_folder() {
-      self.opened_folder = Some(path.clone());
-      self.expanded_folders.insert(path.clone());
-      self.add_recent_project(path.clone());
-      self.set_status(format!("Opened folder: {}", path.display()), ctx);
-    }
-  }
-
-  fn open_folder_dialog(&mut self) {
-    if let Some(path) = rfd::FileDialog::new().pick_folder() {
-      self.opened_folder = Some(path.clone());
-      self.expanded_folders.insert(path.clone());
-      self.add_recent_project(path.clone());
-    }
-  }
-
-  fn open_recent_project(&mut self, path: &std::path::PathBuf) {
-    self.opened_folder = Some(path.clone());
-    self.expanded_folders.insert(path.clone());
-    self.add_recent_project(path.clone());
-  }
-
-  #[allow(dead_code)]
-  fn create_new_file(&mut self) {
-    let _parent_dir = if let Some(folder) = &self.selected_folder {
-      folder.clone()
-    } else if let Some(folder) = &self.opened_folder {
-      folder.clone()
-    } else {
-      return;
-    };
-
-    // For now, just create a new untitled tab
-    // we can mess around with this shit later
-    self.tabs.new_tab();
-  }
-
-  fn create_new_folder(&mut self) {
-    let parent_dir = if let Some(folder) = &self.selected_folder {
-      folder.clone()
-    } else if let Some(folder) = &self.opened_folder {
-      folder.clone()
-    } else {
-      return;
-    };
-
-    // this doesn't do anything right now, will have to work on this
-    self.expanded_folders.insert(parent_dir);
-  }
-
-  fn create_new_file_in_folder(&mut self, folder: &std::path::PathBuf) {
-    if let Some(name) = rfd::FileDialog::new()
-      .set_title("New File")
-      .set_directory(folder)
-      .save_file()
-    {
-      if let Err(e) = std::fs::File::create(&name) {
-        eprintln!("Failed to create file: {}", e);
-        return;
-      }
-      self.expanded_folders.insert(folder.clone());
-      if let Ok(content) = std::fs::read_to_string(&name) {
-        if !self
-          .settings
-          .request_file_open_with_confirmation(name.clone(), content.clone())
-        {
-          return;
-        }
-        self.tabs.open_file(name.clone(), content);
-        self.add_recent_file(name);
-      }
-    }
-  }
-
-  fn create_new_folder_in_folder(&mut self, folder: &std::path::PathBuf) {
-    if let Some(name) = rfd::FileDialog::new()
-      .set_title("New Folder")
-      .set_directory(folder)
-      .save_file()
-    {
-      if let Err(e) = std::fs::create_dir(&name) {
-        eprintln!("Failed to create folder: {}", e);
-        return;
-      }
-      self.expanded_folders.insert(folder.clone());
-    }
-  }
-
-  // TODO: Needs to be fixed
-  // fn open_in_finder(&self, path: &std::path::PathBuf) {
-  //     #[cfg(target_os = "macos")]
-  //     {
-  //         let _ = std::process::Command::new("open")
-  //             .arg(path)
-  //             .spawn();
-  //     }
-  //     #[cfg(target_os = "windows")]
-  //     {
-  //         let _ = std::process::Command::new("explorer")
-  //             .arg("/select,")
-  //             .arg(path)
-  //             .spawn();
-  //     }
-  //     #[cfg(target_os = "linux")]
-  //     {
-  //         let _ = std::process::Command::new("xdg-open")
-  //             .arg(path)
-  //             .spawn();
-  //     }
-  // }
-
-  fn rename_path(&mut self, path: std::path::PathBuf) {
-    let old_name = path
-      .file_name()
-      .map(|n| n.to_string_lossy().to_string())
-      .unwrap_or_default();
-    self.renaming_path = Some((path, old_name));
-  }
-
-  fn finish_rename(&mut self, new_name: &str) {
-    if let Some((old_path, _)) = self.renaming_path.take() {
-      if new_name.is_empty() {
-        return;
-      }
-      let parent = old_path.parent().map(|p| p.to_path_buf());
-      let new_path = parent.as_ref().map(|p| p.join(new_name));
-
-      if let Some(new_path) = new_path {
-        if new_path != old_path {
-          if let Err(e) = std::fs::rename(&old_path, &new_path) {
-            eprintln!("Failed to rename: {}", e);
-          } else {
-            // Update any open tabs with the old path
-            self.tabs.update_tab_path(&old_path, new_path.clone());
-            if let Some(parent) = parent {
-              self.expanded_folders.insert(parent);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  fn delete_path(&mut self, path: std::path::PathBuf) {
-    let is_dir = path.is_dir();
-    let result = if is_dir {
-      std::fs::remove_dir_all(&path)
-    } else {
-      std::fs::remove_file(&path)
-    };
-
-    if let Err(e) = result {
-      eprintln!("Failed to delete: {}", e);
-    } else {
-      self.expanded_folders.remove(&path);
-    }
-  }
-
-  fn save_current_file(&mut self, ctx: &egui::Context) {
-    let (path, content, name) = if let Some(tab) = self.tabs.active_tab() {
-      let path = tab.path.clone();
-      let content = tab.editor.buffer.content().to_string();
-      let name = tab.name.clone();
-      (path, content, name)
-    } else {
-      return;
-    };
-
-    if let Some(path) = path {
-      match std::fs::write(&path, content) {
-        Ok(_) => {
-          if let Some(tab) = self.tabs.active_tab_mut() {
-            tab.is_modified = false;
-          }
-          self.set_status(format!("Saved: {}", name), ctx);
-        }
-        Err(e) => {
-          self.set_status(format!("Error saving file: {}", e), ctx);
-        }
-      }
-    } else {
-      self.save_as_current_file(ctx);
-    }
-  }
-
-  fn save_as_current_file(&mut self, ctx: &egui::Context) {
-    if let Some(tab) = self.tabs.active_tab() {
-      let content = tab.editor.buffer.content().to_string();
-      let suggested_name = tab.name.clone();
-
-      if let Some(path) = rfd::FileDialog::new()
-        .set_file_name(&suggested_name)
-        .save_file()
-      {
-        let path: std::path::PathBuf = path;
-        match std::fs::write(&path, content) {
-          Ok(_) => {
-            let name = path
-              .file_name()
-              .map(|n: &std::ffi::OsStr| n.to_string_lossy().to_string())
-              .unwrap_or_else(|| "untitled".to_string());
-
-            if let Some(tab) = self.tabs.active_tab_mut() {
-              tab.name = name;
-              tab.path = Some(path);
-              tab.is_modified = false;
-            }
-            self.set_status(
-              format!(
-                "Saved as: {}",
-                self
-                  .tabs
-                  .active_tab()
-                  .map(|t| t.name.clone())
-                  .unwrap_or_default()
-              ),
-              ctx,
-            );
-          }
-          Err(e) => {
-            self.set_status(format!("Error saving file: {}", e), ctx);
-          }
-        }
-      }
-    }
-  }
-
-  fn show_menu_bar(&mut self, ctx: &egui::Context) {
-    egui::Panel::top("menu_bar")
-      .exact_size(30.0)
-      .show(ctx, |ui| {
-        ui.horizontal(|ui| {
-          ui.style_mut().visuals.widgets.inactive.weak_bg_fill = CherryBlossomTheme::bg_dark();
-
-          egui::MenuBar::new().ui(ui, |ui| {
-            ui.menu_button("File", |ui| {
-              if ui.button("New File").clicked() {
-                if self.settings.request_new_tab_with_confirmation() {
-                  self.tabs.new_tab();
-                  self.set_status("New file created".to_string(), ctx);
+        // Pinned files open on startup
+        // If a file is unpinned, it'll stay opened until next launch.
+        for pinned_file in asteride.settings.pinned_files.clone() {
+            if pinned_file.exists() {
+                if let Ok(content) = std::fs::read_to_string(&pinned_file) {
+                    asteride.tabs.open_file(pinned_file, content);
                 }
-                ui.close();
-              }
-              if ui.button("Open File...").clicked() {
-                self.open_file(ctx);
-                ui.close();
-              }
-              if ui.button("Open Folder...").clicked() {
-                self.open_folder(ctx);
-                ui.close();
-              }
-              ui.separator();
-              if ui.button("Save").clicked() {
-                self.save_current_file(ctx);
-                ui.close();
-              }
-              if ui.button("Save As...").clicked() {
-                self.save_as_current_file(ctx);
-                ui.close();
-              }
-              ui.separator();
-              if ui.button("Quit").clicked() {
-                std::process::exit(0);
-              }
+            }
+        }
+
+        asteride
+    }
+}
+
+impl AsterIDE {
+    fn config_dir() -> Option<std::path::PathBuf> {
+        dirs::config_dir().map(|d| d.join("asteride"))
+    }
+
+    fn state_file_path() -> Option<std::path::PathBuf> {
+        Self::config_dir().map(|d| d.join("state.json"))
+    }
+
+    fn load_recent_projects() -> Vec<std::path::PathBuf> {
+        if let Some(path) = Self::state_file_path() {
+            if let Ok(content) = std::fs::read_to_string(&path) {
+                if let Ok(state) = serde_json::from_str::<AppState>(&content) {
+                    return state
+                        .recent_projects
+                        .into_iter()
+                        .filter(|p| p.exists())
+                        .take(MAX_RECENT_PROJECTS)
+                        .collect();
+                }
+            }
+        }
+        Vec::new()
+    }
+
+    fn load_recent_files() -> Vec<RecentFile> {
+        if let Some(path) = Self::state_file_path() {
+            if let Ok(content) = std::fs::read_to_string(&path) {
+                if let Ok(state) = serde_json::from_str::<AppState>(&content) {
+                    return state
+                        .recent_files
+                        .into_iter()
+                        .filter(|f| f.path.exists())
+                        .take(MAX_RECENT_FILES)
+                        .collect();
+                }
+            }
+        }
+        Vec::new()
+    }
+
+    fn save_state(&self) {
+        if let Some(path) = Self::state_file_path() {
+            if let Some(dir) = path.parent() {
+                let _ = std::fs::create_dir_all(dir);
+            }
+            let state = AppState {
+                recent_projects: self.recent_projects.clone(),
+                recent_files: self.recent_files.clone(),
+            };
+            if let Ok(json) = serde_json::to_string_pretty(&state) {
+                let _ = std::fs::write(&path, json);
+            }
+        }
+    }
+
+    fn add_recent_file(&mut self, path: std::path::PathBuf) {
+        let project_dir = self.opened_folder.clone();
+        let recent = RecentFile { path, project_dir };
+        self.recent_files.retain(|f| f.path != recent.path);
+        self.recent_files.insert(0, recent);
+        if self.recent_files.len() > MAX_RECENT_FILES {
+            self.recent_files.truncate(MAX_RECENT_FILES);
+        }
+        self.save_state();
+    }
+
+    fn get_relevant_recent_files(&self) -> Vec<RecentFile> {
+        match &self.opened_folder {
+            Some(project) => self
+                .recent_files
+                .iter()
+                .filter(|f| {
+                    f.project_dir.as_ref() == Some(project) && !self.tabs.is_file_open(&f.path)
+                })
+                .take(self.settings.recent_files_limit)
+                .cloned()
+                .collect(),
+            _ => self
+                .recent_files
+                .iter()
+                .filter(|f| f.project_dir.is_none() && !self.tabs.is_file_open(&f.path))
+                .take(self.settings.recent_files_limit)
+                .cloned()
+                .collect(),
+        }
+    }
+
+    fn set_status(&mut self, msg: String, _ctx: &egui::Context) {
+        self.status_message = msg;
+        self.status_message_time = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs_f64();
+    }
+
+    fn find_scm_root(&self, path: &std::path::Path) -> Option<(String, std::path::PathBuf)> {
+        let mut current = if path.is_file() {
+            path.parent().unwrap_or(path)
+        } else {
+            path
+        };
+
+        loop {
+            if current.join(".git").exists() {
+                return Some(("Git".to_string(), current.to_path_buf()));
+            }
+            if current.join(".hg").exists() {
+                return Some(("Mercurial".to_string(), current.to_path_buf()));
+            }
+
+            match current.parent() {
+                Some(parent) if parent != current => current = parent,
+                _ => break,
+            }
+        }
+
+        None
+    }
+
+    fn get_scm_status(&self, path: &std::path::Path) -> Option<(String, String)> {
+        let (kind, root) = self.find_scm_root(path)?;
+        let (program, args) = if kind == "Git" {
+            ("git", vec!["status", "--short", "--branch"])
+        } else {
+            ("hg", vec!["status", "-A"])
+        };
+
+        let output = std::process::Command::new(program)
+            .arg("-C")
+            .arg(root.to_string_lossy().as_ref())
+            .args(args)
+            .output()
+            .ok()?;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+
+        if !stdout.is_empty() {
+            Some((kind, stdout))
+        } else if !stderr.is_empty() {
+            Some((kind, stderr))
+        } else {
+            Some((kind, "No changes".to_string()))
+        }
+    }
+
+    fn should_ignore_dir(&self, path: &std::path::Path) -> bool {
+        if !self.settings.search_ignore_dirs_enabled {
+            return false;
+        }
+
+        let dir_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+        for pattern in self.settings.search_ignored_dirs.split(',') {
+            let pattern = pattern.trim();
+            if pattern.is_empty() {
+                continue;
+            }
+
+            if pattern.starts_with('*') && pattern.ends_with('*') && pattern.len() > 2 {
+                let middle = &pattern[1..pattern.len() - 1];
+                if dir_name.contains(middle) {
+                    return true;
+                }
+            } else if pattern.starts_with('*') {
+                let suffix = &pattern[1..];
+                if dir_name.ends_with(suffix) {
+                    return true;
+                }
+            } else if pattern.ends_with('*') {
+                let prefix = &pattern[..pattern.len() - 1];
+                if dir_name.starts_with(prefix) {
+                    return true;
+                }
+            } else if dir_name == pattern {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn open_file(&mut self, ctx: &egui::Context) {
+        if let Some(path) = rfd::FileDialog::new().pick_file() {
+            match std::fs::read_to_string(&path) {
+                Ok(content) => {
+                    if !self
+                        .settings
+                        .request_file_open_with_confirmation(path.clone(), content.clone())
+                    {
+                        return;
+                    }
+                    self.tabs.open_file(path.clone(), content);
+                    self.add_recent_file(path);
+                    self.set_status(
+                        format!(
+                            "Opened: {}",
+                            self.tabs
+                                .active_tab()
+                                .map(|t| t.name.clone())
+                                .unwrap_or_default()
+                        ),
+                        ctx,
+                    );
+                }
+                Err(e) => {
+                    self.set_status(format!("Error opening file: {}", e), ctx);
+                }
+            }
+        }
+    }
+
+    fn add_recent_project(&mut self, path: std::path::PathBuf) {
+        self.recent_projects.retain(|p| p != &path);
+        self.recent_projects.insert(0, path);
+        self.recent_projects.truncate(MAX_RECENT_PROJECTS);
+        self.save_state();
+    }
+
+    fn open_folder(&mut self, ctx: &egui::Context) {
+        if let Some(path) = rfd::FileDialog::new().pick_folder() {
+            self.opened_folder = Some(path.clone());
+            self.expanded_folders.insert(path.clone());
+            self.add_recent_project(path.clone());
+            self.set_status(format!("Opened folder: {}", path.display()), ctx);
+        }
+    }
+
+    fn open_folder_dialog(&mut self) {
+        if let Some(path) = rfd::FileDialog::new().pick_folder() {
+            self.opened_folder = Some(path.clone());
+            self.expanded_folders.insert(path.clone());
+            self.add_recent_project(path.clone());
+        }
+    }
+
+    fn open_recent_project(&mut self, path: &std::path::PathBuf) {
+        self.opened_folder = Some(path.clone());
+        self.expanded_folders.insert(path.clone());
+        self.add_recent_project(path.clone());
+    }
+
+    #[allow(dead_code)]
+    fn create_new_file(&mut self) {
+        let _parent_dir = if let Some(folder) = &self.selected_folder {
+            folder.clone()
+        } else if let Some(folder) = &self.opened_folder {
+            folder.clone()
+        } else {
+            return;
+        };
+
+        // For now, just create a new untitled tab
+        // we can mess around with this shit later
+        self.tabs.new_tab();
+    }
+
+    fn create_new_folder(&mut self) {
+        let parent_dir = if let Some(folder) = &self.selected_folder {
+            folder.clone()
+        } else if let Some(folder) = &self.opened_folder {
+            folder.clone()
+        } else {
+            return;
+        };
+
+        // this doesn't do anything right now, will have to work on this
+        self.expanded_folders.insert(parent_dir);
+    }
+
+    fn create_new_file_in_folder(&mut self, folder: &std::path::PathBuf) {
+        if let Some(name) = rfd::FileDialog::new()
+            .set_title("New File")
+            .set_directory(folder)
+            .save_file()
+        {
+            if let Err(e) = std::fs::File::create(&name) {
+                eprintln!("Failed to create file: {}", e);
+                return;
+            }
+            self.expanded_folders.insert(folder.clone());
+            if let Ok(content) = std::fs::read_to_string(&name) {
+                if !self
+                    .settings
+                    .request_file_open_with_confirmation(name.clone(), content.clone())
+                {
+                    return;
+                }
+                self.tabs.open_file(name.clone(), content);
+                self.add_recent_file(name);
+            }
+        }
+    }
+
+    fn create_new_folder_in_folder(&mut self, folder: &std::path::PathBuf) {
+        if let Some(name) = rfd::FileDialog::new()
+            .set_title("New Folder")
+            .set_directory(folder)
+            .save_file()
+        {
+            if let Err(e) = std::fs::create_dir(&name) {
+                eprintln!("Failed to create folder: {}", e);
+                return;
+            }
+            self.expanded_folders.insert(folder.clone());
+        }
+    }
+
+    // TODO: Needs to be fixed
+    // fn open_in_finder(&self, path: &std::path::PathBuf) {
+    //     #[cfg(target_os = "macos")]
+    //     {
+    //         let _ = std::process::Command::new("open")
+    //             .arg(path)
+    //             .spawn();
+    //     }
+    //     #[cfg(target_os = "windows")]
+    //     {
+    //         let _ = std::process::Command::new("explorer")
+    //             .arg("/select,")
+    //             .arg(path)
+    //             .spawn();
+    //     }
+    //     #[cfg(target_os = "linux")]
+    //     {
+    //         let _ = std::process::Command::new("xdg-open")
+    //             .arg(path)
+    //             .spawn();
+    //     }
+    // }
+
+    fn rename_path(&mut self, path: std::path::PathBuf) {
+        let old_name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        self.renaming_path = Some((path, old_name));
+    }
+
+    fn finish_rename(&mut self, new_name: &str) {
+        if let Some((old_path, _)) = self.renaming_path.take() {
+            if new_name.is_empty() {
+                return;
+            }
+            let parent = old_path.parent().map(|p| p.to_path_buf());
+            let new_path = parent.as_ref().map(|p| p.join(new_name));
+
+            if let Some(new_path) = new_path {
+                if new_path != old_path {
+                    if let Err(e) = std::fs::rename(&old_path, &new_path) {
+                        eprintln!("Failed to rename: {}", e);
+                    } else {
+                        // Update any open tabs with the old path
+                        self.tabs.update_tab_path(&old_path, new_path.clone());
+                        if let Some(parent) = parent {
+                            self.expanded_folders.insert(parent);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn delete_path(&mut self, path: std::path::PathBuf) {
+        let is_dir = path.is_dir();
+        let result = if is_dir {
+            std::fs::remove_dir_all(&path)
+        } else {
+            std::fs::remove_file(&path)
+        };
+
+        if let Err(e) = result {
+            eprintln!("Failed to delete: {}", e);
+        } else {
+            self.expanded_folders.remove(&path);
+        }
+    }
+
+    fn save_current_file(&mut self, ctx: &egui::Context) {
+        let (path, content, name) = if let Some(tab) = self.tabs.active_tab() {
+            let path = tab.path.clone();
+            let content = tab.editor.buffer.content().to_string();
+            let name = tab.name.clone();
+            (path, content, name)
+        } else {
+            return;
+        };
+
+        if let Some(path) = path {
+            match std::fs::write(&path, content) {
+                Ok(_) => {
+                    if let Some(tab) = self.tabs.active_tab_mut() {
+                        tab.is_modified = false;
+                    }
+                    self.set_status(format!("Saved: {}", name), ctx);
+                }
+                Err(e) => {
+                    self.set_status(format!("Error saving file: {}", e), ctx);
+                }
+            }
+        } else {
+            self.save_as_current_file(ctx);
+        }
+    }
+
+    fn save_as_current_file(&mut self, ctx: &egui::Context) {
+        if let Some(tab) = self.tabs.active_tab() {
+            let content = tab.editor.buffer.content().to_string();
+            let suggested_name = tab.name.clone();
+
+            if let Some(path) = rfd::FileDialog::new()
+                .set_file_name(&suggested_name)
+                .save_file()
+            {
+                let path: std::path::PathBuf = path;
+                match std::fs::write(&path, content) {
+                    Ok(_) => {
+                        let name = path
+                            .file_name()
+                            .map(|n: &std::ffi::OsStr| n.to_string_lossy().to_string())
+                            .unwrap_or_else(|| "untitled".to_string());
+
+                        if let Some(tab) = self.tabs.active_tab_mut() {
+                            tab.name = name;
+                            tab.path = Some(path);
+                            tab.is_modified = false;
+                        }
+                        self.set_status(
+                            format!(
+                                "Saved as: {}",
+                                self.tabs
+                                    .active_tab()
+                                    .map(|t| t.name.clone())
+                                    .unwrap_or_default()
+                            ),
+                            ctx,
+                        );
+                    }
+                    Err(e) => {
+                        self.set_status(format!("Error saving file: {}", e), ctx);
+                    }
+                }
+            }
+        }
+    }
+
+    fn show_menu_bar(&mut self, ctx: &egui::Context) {
+        egui::Panel::top("menu_bar")
+            .exact_size(30.0)
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.style_mut().visuals.widgets.inactive.weak_bg_fill =
+                        CherryBlossomTheme::bg_dark();
+
+                    egui::MenuBar::new().ui(ui, |ui| {
+                        ui.menu_button("File", |ui| {
+                            if ui.button("New File").clicked() {
+                                if self.settings.request_new_tab_with_confirmation() {
+                                    self.tabs.new_tab();
+                                    self.set_status("New file created".to_string(), ctx);
+                                }
+                                ui.close();
+                            }
+                            if ui.button("Open File...").clicked() {
+                                self.open_file(ctx);
+                                ui.close();
+                            }
+                            if ui.button("Open Folder...").clicked() {
+                                self.open_folder(ctx);
+                                ui.close();
+                            }
+                            ui.separator();
+                            if ui.button("Save").clicked() {
+                                self.save_current_file(ctx);
+                                ui.close();
+                            }
+                            if ui.button("Save As...").clicked() {
+                                self.save_as_current_file(ctx);
+                                ui.close();
+                            }
+                            ui.separator();
+                            if ui.button("Quit").clicked() {
+                                std::process::exit(0);
+                            }
+                        });
+
+                        ui.menu_button("Edit", |ui| {
+                            if ui.button("Undo").clicked() {
+                                ui.close();
+                            }
+                            if ui.button("Redo").clicked() {
+                                ui.close();
+                            }
+                            ui.separator();
+                            if ui.button("Cut").clicked() {
+                                ui.close();
+                            }
+                            if ui.button("Copy").clicked() {
+                                ui.close();
+                            }
+                            if ui.button("Paste").clicked() {
+                                ui.close();
+                            }
+                        });
+
+                        ui.menu_button("View", |ui| {
+                            if ui
+                                .checkbox(&mut self.settings.sidebar_visible, "Sidebar")
+                                .clicked()
+                            {
+                                ui.close();
+                            }
+                            if ui
+                                .checkbox(&mut self.settings.show_line_numbers, "Line Numbers")
+                                .clicked()
+                            {
+                                ui.close();
+                            }
+                            if ui
+                                .checkbox(&mut self.settings.word_wrap, "Word Wrap")
+                                .clicked()
+                            {
+                                ui.close();
+                            }
+                            if ui
+                                .checkbox(&mut self.settings.status_bar_visible, "Status Bar")
+                                .clicked()
+                            {
+                                ui.close();
+                            }
+                            ui.separator();
+                            if ui.button("Command Palette").clicked() {
+                                self.command_palette.toggle();
+                                ui.close();
+                            }
+                            if ui.button("Settings").clicked() {
+                                self.tabs.open_settings_tab();
+                                ui.close();
+                            }
+                        });
+
+                        ui.menu_button("Help", |ui| {
+                            if ui.button("About AsterIDE").clicked() {
+                                let version = env!("CARGO_PKG_VERSION");
+                                self.set_status(
+                                    format!("AsterIDE - Cherry Blossom Edition v{}", version),
+                                    ctx,
+                                );
+                                ui.close();
+                            }
+                        });
+                    });
+                });
+            });
+    }
+
+    fn show_activity_bar(&mut self, ctx: &egui::Context) {
+        egui::Panel::left("activity_bar")
+            .exact_size(50.0)
+            .show(ctx, |ui| {
+                ui.vertical_centered(|ui| {
+                    ui.set_height(ui.available_height());
+                    ui.style_mut().spacing.item_spacing = egui::vec2(0.0, 10.0);
+
+                    let button_size = egui::vec2(40.0, 40.0);
+
+                    let active_tab_type = self
+                        .tabs
+                        .active_tab()
+                        .map(|t| t.tab_type)
+                        .unwrap_or(TabType::File);
+
+                    // Explorer is only active when sidebar tab is Explorer AND current tab is a file
+                    // and the sidebar is visible.
+                    let explorer_active = self.active_sidebar_tab == SidebarTab::Explorer
+                        && active_tab_type == TabType::File
+                        && self.settings.sidebar_visible;
+
+                    if self.icon_button(ui, "📁", "Explorer", explorer_active, button_size) {
+                        self.toggle_sidebar(SidebarTab::Explorer);
+                    }
+
+                    let search_active = self.active_sidebar_tab == SidebarTab::Search
+                        && self.settings.sidebar_visible;
+                    if self.icon_button(ui, "🔍", "Search", search_active, button_size) {
+                        self.tabs.open_search_tab();
+                    }
+
+                    let git_active =
+                        self.active_sidebar_tab == SidebarTab::Git && self.settings.sidebar_visible;
+                    if self.icon_button(ui, "🌸", "Git", git_active, button_size) {
+                        self.toggle_sidebar(SidebarTab::Git);
+                    }
+
+                    let ext_active = self.active_sidebar_tab == SidebarTab::Extensions
+                        && self.settings.sidebar_visible;
+                    if self.icon_button(ui, "📦", "Extensions", ext_active, button_size) {
+                        self.toggle_sidebar(SidebarTab::Extensions);
+                    }
+
+                    ui.add_space(ui.available_height() - 50.0);
+
+                    let settings_active = self
+                        .tabs
+                        .active_tab()
+                        .map(|t| t.tab_type == TabType::Settings)
+                        .unwrap_or(false);
+                    if self.icon_button(ui, "⚙", "Settings", settings_active, button_size) {
+                        self.tabs.open_settings_tab();
+                    }
+                });
+            });
+    }
+
+    fn icon_button(
+        &self,
+        ui: &mut egui::Ui,
+        icon: &str,
+        _tooltip: &str,
+        active: bool,
+        size: egui::Vec2,
+    ) -> bool {
+        let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
+
+        let _visuals = ui.style().interact(&response);
+        let bg_color = if active {
+            CherryBlossomTheme::bg_mid()
+        } else if response.hovered() {
+            CherryBlossomTheme::bg_light()
+        } else {
+            CherryBlossomTheme::bg_dark()
+        };
+
+        ui.painter().rect_filled(rect, 6.0, bg_color);
+
+        if active {
+            ui.painter().rect_filled(
+                egui::Rect::from_min_size(rect.left_top(), egui::vec2(3.0, rect.height())),
+                0.0,
+                CherryBlossomTheme::accent_pink(),
+            );
+        }
+
+        let fg_color = if active {
+            CherryBlossomTheme::accent_pink()
+        } else if response.hovered() {
+            CherryBlossomTheme::text_primary()
+        } else {
+            CherryBlossomTheme::text_secondary()
+        };
+
+        let galley = ui.painter().layout(
+            icon.to_string(),
+            egui::FontId::new(22.0, egui::FontFamily::Proportional),
+            fg_color,
+            size.x,
+        );
+
+        let text_pos = rect.center() - galley.size() / 2.0;
+        ui.painter()
+            .galley(text_pos, galley, CherryBlossomTheme::text_primary());
+
+        response.clicked()
+    }
+
+    fn toggle_sidebar(&mut self, tab: SidebarTab) {
+        let old_visibility = self.settings.sidebar_visible;
+
+        if self.active_sidebar_tab == tab && self.settings.sidebar_visible {
+            self.settings.sidebar_visible = false;
+        } else {
+            self.active_sidebar_tab = tab;
+            self.settings.sidebar_visible = true;
+        }
+
+        if old_visibility != self.settings.sidebar_visible {}
+    }
+
+    fn show_sidebar(&mut self, ctx: &egui::Context) {
+        if !self.settings.sidebar_visible {
+            return;
+        }
+
+        let panel_response = egui::Panel::left("sidebar")
+            .default_width(self.sidebar_width.clamp(250.0, 550.0))
+            .min_width(250.0)
+            .max_width(550.0)
+            .resizable(true)
+            .show(ctx, |ui| {
+                ui.set_height(ui.available_height());
+
+                match self.active_sidebar_tab {
+                    SidebarTab::Explorer => self.show_explorer(ui),
+                    SidebarTab::Search => search::show_search_button(ui),
+                    SidebarTab::Git => self.show_git(ui),
+                    SidebarTab::Extensions => self.show_extensions(ui),
+                }
             });
 
-            ui.menu_button("Edit", |ui| {
-              if ui.button("Undo").clicked() {
-                ui.close();
-              }
-              if ui.button("Redo").clicked() {
-                ui.close();
-              }
-              ui.separator();
-              if ui.button("Cut").clicked() {
-                ui.close();
-              }
-              if ui.button("Copy").clicked() {
-                ui.close();
-              }
-              if ui.button("Paste").clicked() {
-                ui.close();
-              }
-            });
+        let new_width: f32 = panel_response.response.rect.width();
 
-            ui.menu_button("View", |ui| {
-              if ui
-                .checkbox(&mut self.settings.sidebar_visible, "Sidebar")
-                .clicked()
-              {
-                ui.close();
-              }
-              if ui
-                .checkbox(&mut self.settings.show_line_numbers, "Line Numbers")
-                .clicked()
-              {
-                ui.close();
-              }
-              if ui
-                .checkbox(&mut self.settings.word_wrap, "Word Wrap")
-                .clicked()
-              {
-                ui.close();
-              }
-              if ui
-                .checkbox(&mut self.settings.status_bar_visible, "Status Bar")
-                .clicked()
-              {
-                ui.close();
-              }
-              ui.separator();
-              if ui.button("Command Palette").clicked() {
-                self.command_palette.toggle();
-                ui.close();
-              }
-              if ui.button("Settings").clicked() {
-                self.tabs.open_settings_tab();
-                ui.close();
-              }
-            });
+        if new_width.is_finite() && new_width > 0.0 && (new_width - self.sidebar_width).abs() > 1.0
+        {
+            self.sidebar_width = new_width;
+        }
+    }
 
-            ui.menu_button("Help", |ui| {
-              if ui.button("About AsterIDE").clicked() {
-                let version = env!("CARGO_PKG_VERSION");
-                self.set_status(
-                  format!("AsterIDE - Cherry Blossom Edition v{}", version),
-                  ctx,
+    fn show_explorer(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            let heading_text = self
+                .opened_folder
+                .as_ref()
+                .and_then(|p| p.file_name())
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| "Explorer".to_string());
+            ui.heading(heading_text);
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                let button_size = egui::vec2(24.0, 24.0);
+                let button_fill = lerp_color(
+                    CherryBlossomTheme::bg_darkest(),
+                    CherryBlossomTheme::bg_light(),
+                    0.3,
                 );
-                ui.close();
-              }
+                let button_stroke = egui::Stroke::new(
+                    0.5,
+                    lerp_color(
+                        CherryBlossomTheme::border_pink(),
+                        CherryBlossomTheme::bg_light(),
+                        0.5,
+                    ),
+                );
+                let text_color = CherryBlossomTheme::text_secondary();
+
+                if ui
+                    .add_sized(
+                        button_size,
+                        egui::Button::new(egui::RichText::new("⬇").color(text_color).size(13.0))
+                            .fill(button_fill)
+                            .stroke(button_stroke)
+                            .corner_radius(6.0),
+                    )
+                    .clicked()
+                {
+                    self.expanded_folders.clear();
+                }
+                if ui
+                    .add_sized(
+                        button_size,
+                        egui::Button::new(egui::RichText::new("🔄").color(text_color).size(13.0))
+                            .fill(button_fill)
+                            .stroke(button_stroke)
+                            .corner_radius(6.0),
+                    )
+                    .clicked()
+                {}
+                if ui
+                    .add_sized(
+                        button_size,
+                        egui::Button::new(egui::RichText::new("📁+").color(text_color).size(13.0))
+                            .fill(button_fill)
+                            .stroke(button_stroke)
+                            .corner_radius(6.0),
+                    )
+                    .clicked()
+                {
+                    self.create_new_folder();
+                }
+                if ui
+                    .add_sized(
+                        button_size,
+                        egui::Button::new(egui::RichText::new("📄+").color(text_color).size(13.0))
+                            .fill(button_fill)
+                            .stroke(button_stroke)
+                            .corner_radius(6.0),
+                    )
+                    .clicked()
+                {
+                    if self.settings.request_new_tab_with_confirmation() {
+                        self.tabs.new_tab();
+                    }
+                }
             });
-          });
         });
-      });
-  }
+        ui.add_space(8.0);
 
-  fn show_activity_bar(&mut self, ctx: &egui::Context) {
-    egui::Panel::left("activity_bar")
-      .exact_size(50.0)
-      .show(ctx, |ui| {
-        ui.vertical_centered(|ui| {
-          ui.set_height(ui.available_height());
-          ui.style_mut().spacing.item_spacing = egui::vec2(0.0, 10.0);
+        egui::ScrollArea::vertical()
+            .id_salt("explorer_scroll")
+            .show(ui, |ui| {
+                if let Some(folder) = self.opened_folder.clone() {
+                    self.show_folder_tree(ui, &folder, 0);
+                } else {
+                    ui.vertical_centered(|ui| {
+                        ui.add_space(40.0);
+                        ui.label(egui::RichText::new("📂").size(48.0));
+                        ui.add_space(12.0);
+                        ui.label(
+                            egui::RichText::new("No folder opened")
+                                .size(14.0)
+                                .color(CherryBlossomTheme::text_muted()),
+                        );
+                        ui.add_space(16.0);
+                        let button_fill = lerp_color(
+                            CherryBlossomTheme::bg_darkest(),
+                            CherryBlossomTheme::bg_light(),
+                            0.3,
+                        );
+                        let button_stroke = egui::Stroke::new(
+                            0.5,
+                            lerp_color(
+                                CherryBlossomTheme::border_pink(),
+                                CherryBlossomTheme::bg_light(),
+                                0.5,
+                            ),
+                        );
+                        if ui
+                            .add(
+                                egui::Button::new(
+                                    egui::RichText::new("📂 Open Folder")
+                                        .color(CherryBlossomTheme::text_secondary())
+                                        .size(13.0),
+                                )
+                                .fill(button_fill)
+                                .stroke(button_stroke)
+                                .corner_radius(8.0),
+                            )
+                            .clicked()
+                        {
+                            self.open_folder_dialog();
+                        }
+                    });
+                }
 
-          let button_size = egui::vec2(40.0, 40.0);
+                ui.add_space(16.0);
+                ui.vertical(|ui| {
+                    ui.add(
+                        egui::Label::new(
+                            egui::RichText::new("Open Editors")
+                                .size(12.0)
+                                .strong()
+                                .color(CherryBlossomTheme::text_muted()),
+                        )
+                        .selectable(false),
+                    );
+                    ui.add_space(6.0);
+                });
 
-          let active_tab_type = self
+                let tab_count = self.tabs.tabs.len();
+                for i in 0..tab_count {
+                    let tab = &self.tabs.tabs[i];
+                    let is_active = i == self.tabs.active_tab;
+
+                    let button_height = 32.0;
+                    let available_width = ui.available_width();
+
+                    let (rect, response) = ui.allocate_exact_size(
+                        egui::vec2(available_width, button_height),
+                        egui::Sense::click(),
+                    );
+
+                    let bg_color = if is_active {
+                        lerp_color(
+                            CherryBlossomTheme::bg_darkest(),
+                            CherryBlossomTheme::bg_light(),
+                            0.4,
+                        )
+                    } else if response.hovered() {
+                        lerp_color(
+                            CherryBlossomTheme::bg_darkest(),
+                            CherryBlossomTheme::bg_light(),
+                            0.2,
+                        )
+                    } else {
+                        egui::Color32::TRANSPARENT
+                    };
+
+                    let corner_radius = 8.0;
+                    ui.painter().rect_filled(rect, corner_radius, bg_color);
+
+                    if is_active {
+                        let indicator_rect = egui::Rect::from_min_size(
+                            rect.left_top() + egui::vec2(6.0, 8.0),
+                            egui::vec2(3.0, button_height - 16.0),
+                        );
+                        ui.painter().rect_filled(
+                            indicator_rect,
+                            1.5,
+                            lerp_color(
+                                CherryBlossomTheme::accent_pink(),
+                                CherryBlossomTheme::bg_light(),
+                                0.3,
+                            ),
+                        );
+                    }
+
+                    let modified_dot_x = if is_active { 20.0 } else { 16.0 };
+                    if tab.is_modified {
+                        let dot_rect = egui::Rect::from_center_size(
+                            rect.left_center() + egui::vec2(modified_dot_x, 0.0),
+                            egui::vec2(5.0, 5.0),
+                        );
+                        ui.painter().circle_filled(
+                            dot_rect.center(),
+                            2.5,
+                            lerp_color(
+                                CherryBlossomTheme::accent_hot(),
+                                CherryBlossomTheme::bg_light(),
+                                0.4,
+                            ),
+                        );
+                    }
+
+                    let text_offset = if tab.is_modified {
+                        modified_dot_x + 10.0
+                    } else {
+                        modified_dot_x
+                    };
+                    let text_color = if is_active {
+                        CherryBlossomTheme::text_primary()
+                    } else {
+                        CherryBlossomTheme::text_secondary()
+                    };
+
+                    ui.painter().text(
+                        rect.left_center() + egui::vec2(text_offset, 0.0),
+                        egui::Align2::LEFT_CENTER,
+                        &tab.name,
+                        egui::FontId::new(12.5, egui::FontFamily::Proportional),
+                        text_color,
+                    );
+
+                    if response.clicked() {
+                        self.tabs.set_active(i);
+                    }
+
+                    ui.add_space(4.0);
+                }
+            });
+    }
+
+    fn show_folder_tree(&mut self, ui: &mut egui::Ui, path: &std::path::PathBuf, depth: usize) {
+        let is_expanded = self.expanded_folders.contains(path);
+        let is_dir = path.is_dir();
+
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| path.to_string_lossy().to_string());
+
+        let icon = if is_dir {
+            if is_expanded { "📂" } else { "📁" }
+        } else {
+            "📄"
+        };
+
+        let is_open = self.tabs.is_file_open(path);
+        let is_current = self
+            .tabs
+            .active_tab_path()
+            .map(|p| *p == *path)
+            .unwrap_or(false);
+
+        let _indent = "  ".repeat(depth);
+
+        let (_prefix, _suffix) = if is_current {
+            ("> ", "")
+        } else if is_open {
+            let is_modified = self.tabs.is_file_modified(path);
+            if is_modified {
+                ("- ", " [M]")
+            } else {
+                ("- ", "")
+            }
+        } else {
+            ("  ", "")
+        };
+
+        let is_renaming = self
+            .renaming_path
+            .as_ref()
+            .map(|(p, _)| p == path)
+            .unwrap_or(false);
+
+        if is_renaming {
+            let rename_text = self.renaming_path.as_mut().map(|(_, n)| n).unwrap();
+            let text_edit = ui.add(
+                egui::TextEdit::singleline(rename_text)
+                    .desired_width(ui.available_width())
+                    .font(egui::FontId::new(13.0, egui::FontFamily::Proportional)),
+            );
+
+            if text_edit.lost_focus() {
+                if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                    let new_name = rename_text.clone();
+                    self.finish_rename(&new_name);
+                } else if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                    self.renaming_path = None;
+                }
+            }
+
+            if text_edit.ctx.input(|i| i.time) > 0.0 && !text_edit.has_focus() {
+                text_edit.request_focus();
+            }
+        } else {
+            let item_height = 28.0 + self.settings.tree_spacing;
+            let available_width = ui.available_width();
+            let (rect, response) = ui.allocate_exact_size(
+                egui::vec2(available_width, item_height),
+                egui::Sense::click(),
+            );
+
+            let bg_color = if is_current {
+                lerp_color(
+                    CherryBlossomTheme::bg_darkest(),
+                    CherryBlossomTheme::bg_light(),
+                    0.35,
+                )
+            } else if response.hovered() {
+                lerp_color(
+                    CherryBlossomTheme::bg_darkest(),
+                    CherryBlossomTheme::bg_light(),
+                    0.15,
+                )
+            } else {
+                egui::Color32::TRANSPARENT
+            };
+
+            let corner_radius = 6.0;
+            ui.painter().rect_filled(rect, corner_radius, bg_color);
+
+            if is_current {
+                let indicator_rect = egui::Rect::from_min_size(
+                    rect.left_top() + egui::vec2(4.0, 6.0 + self.settings.tree_spacing / 2.0),
+                    egui::vec2(2.5, item_height - 12.0 - self.settings.tree_spacing),
+                );
+                ui.painter().rect_filled(
+                    indicator_rect,
+                    1.25,
+                    lerp_color(
+                        CherryBlossomTheme::accent_pink(),
+                        CherryBlossomTheme::bg_light(),
+                        0.3,
+                    ),
+                );
+            }
+
+            let icon_size = 14.0;
+            let text_size = 12.5;
+            let indent_pixels = depth as f32 * 16.0;
+            let icon_x = indent_pixels + 8.0;
+            let text_x = icon_x + 20.0;
+
+            let text_color = if is_current {
+                CherryBlossomTheme::text_primary()
+            } else if is_open {
+                CherryBlossomTheme::text_secondary()
+            } else {
+                CherryBlossomTheme::text_muted()
+            };
+
+            ui.painter().text(
+                rect.left_center() + egui::vec2(icon_x, 0.0),
+                egui::Align2::LEFT_CENTER,
+                icon,
+                egui::FontId::new(icon_size, egui::FontFamily::Proportional),
+                text_color,
+            );
+
+            ui.painter().text(
+                rect.left_center() + egui::vec2(text_x, 0.0),
+                egui::Align2::LEFT_CENTER,
+                &name,
+                egui::FontId::new(text_size, egui::FontFamily::Proportional),
+                text_color,
+            );
+
+            if is_open && !is_current {
+                let is_modified = self.tabs.is_file_modified(path);
+                if is_modified {
+                    let dot_rect = egui::Rect::from_center_size(
+                        rect.right_center() - egui::vec2(16.0, 0.0),
+                        egui::vec2(4.0, 4.0),
+                    );
+                    ui.painter().circle_filled(
+                        dot_rect.center(),
+                        2.0,
+                        lerp_color(
+                            CherryBlossomTheme::accent_hot(),
+                            CherryBlossomTheme::bg_light(),
+                            0.4,
+                        ),
+                    );
+                }
+            }
+
+            ui.add_space(self.settings.tree_spacing);
+
+            if response.clicked() {
+                if is_dir {
+                    if is_expanded {
+                        self.expanded_folders.remove(path);
+                    } else {
+                        self.expanded_folders.insert(path.clone());
+                    }
+                } else {
+                    if let Ok(content) = std::fs::read_to_string(&path) {
+                        if !self
+                            .settings
+                            .request_file_open_with_confirmation(path.clone(), content.clone())
+                        {
+                            return;
+                        }
+                        self.tabs.open_file(path.clone(), content);
+                        self.add_recent_file(path.to_path_buf());
+                    }
+                }
+            }
+
+            if response.middle_clicked() && !is_dir {
+                if let Ok(content) = std::fs::read_to_string(&path) {
+                    if !self
+                        .settings
+                        .request_file_open_with_confirmation(path.clone(), content.clone())
+                    {
+                        return;
+                    }
+                    self.tabs.open_file_in_background(path.clone(), content);
+                    self.add_recent_file(path.to_path_buf());
+                }
+            }
+
+            response.context_menu(|ui| {
+                ui.style_mut().visuals.widgets.hovered.weak_bg_fill = lerp_color(
+                    CherryBlossomTheme::bg_darkest(),
+                    CherryBlossomTheme::bg_light(),
+                    0.15,
+                );
+                ui.style_mut().visuals.widgets.hovered.bg_fill = lerp_color(
+                    CherryBlossomTheme::bg_darkest(),
+                    CherryBlossomTheme::bg_light(),
+                    0.15,
+                );
+
+                let button_fill = lerp_color(
+                    CherryBlossomTheme::bg_darkest(),
+                    CherryBlossomTheme::bg_light(),
+                    0.2,
+                );
+                let button_stroke = egui::Stroke::new(
+                    0.5,
+                    lerp_color(
+                        CherryBlossomTheme::border_pink(),
+                        CherryBlossomTheme::bg_light(),
+                        0.6,
+                    ),
+                );
+                let text_color = CherryBlossomTheme::text_secondary();
+                if !is_dir {
+                    if ui
+                        .add(
+                            egui::Button::new(
+                                egui::RichText::new("Open").color(text_color).size(12.0),
+                            )
+                            .fill(button_fill)
+                            .stroke(button_stroke)
+                            .corner_radius(6.0),
+                        )
+                        .clicked()
+                    {
+                        if let Ok(content) = std::fs::read_to_string(&path) {
+                            if !self
+                                .settings
+                                .request_file_open_with_confirmation(path.clone(), content.clone())
+                            {
+                                ui.close();
+                                return;
+                            }
+                            self.tabs.open_file(path.clone(), content);
+                            self.add_recent_file(path.to_path_buf());
+                        }
+                        ui.close();
+                    }
+                    if ui
+                        .add(
+                            egui::Button::new(
+                                egui::RichText::new("Open in Background")
+                                    .color(text_color)
+                                    .size(12.0),
+                            )
+                            .fill(button_fill)
+                            .stroke(button_stroke)
+                            .corner_radius(6.0),
+                        )
+                        .clicked()
+                    {
+                        if let Ok(content) = std::fs::read_to_string(&path) {
+                            if !self
+                                .settings
+                                .request_file_open_with_confirmation(path.clone(), content.clone())
+                            {
+                                ui.close();
+                                return;
+                            }
+                            self.tabs.open_file_in_background(path.clone(), content);
+                            self.add_recent_file(path.to_path_buf());
+                        }
+                        ui.close();
+                    }
+
+                    ui.separator();
+
+                    let is_pinned = self.settings.pinned_files.contains(&path);
+
+                    if is_pinned {
+                        if ui
+                            .add(
+                                egui::Button::new(
+                                    egui::RichText::new("📌 Unpin File")
+                                        .color(text_color)
+                                        .size(12.0),
+                                )
+                                .fill(button_fill)
+                                .stroke(button_stroke)
+                                .corner_radius(6.0),
+                            )
+                            .clicked()
+                        {
+                            self.settings.pinned_files.retain(|p| p != path);
+                            ui.close();
+                        }
+                    } else {
+                        if ui
+                            .add(
+                                egui::Button::new(
+                                    egui::RichText::new("📌 Pin File")
+                                        .color(text_color)
+                                        .size(12.0),
+                                )
+                                .fill(button_fill)
+                                .stroke(button_stroke)
+                                .corner_radius(6.0),
+                            )
+                            .clicked()
+                        {
+                            if !self.settings.pinned_files.contains(&path) {
+                                self.settings.pinned_files.push(path.clone());
+                            }
+                            ui.close();
+                        }
+                    }
+                    ui.separator();
+                }
+
+                if is_dir {
+                    if ui
+                        .add(
+                            egui::Button::new(
+                                egui::RichText::new("📁 New Folder...")
+                                    .color(text_color)
+                                    .size(12.0),
+                            )
+                            .fill(button_fill)
+                            .stroke(button_stroke)
+                            .corner_radius(6.0),
+                        )
+                        .clicked()
+                    {
+                        self.create_new_folder_in_folder(path);
+                        ui.close();
+                    }
+                    if ui
+                        .add(
+                            egui::Button::new(
+                                egui::RichText::new("📄 New File...")
+                                    .color(text_color)
+                                    .size(12.0),
+                            )
+                            .fill(button_fill)
+                            .stroke(button_stroke)
+                            .corner_radius(6.0),
+                        )
+                        .clicked()
+                    {
+                        self.create_new_file_in_folder(path);
+                        ui.close();
+                    }
+                    ui.separator();
+                }
+
+                if ui
+                    .add(
+                        egui::Button::new(egui::RichText::new("Copy").color(text_color).size(12.0))
+                            .fill(button_fill)
+                            .stroke(button_stroke)
+                            .corner_radius(6.0),
+                    )
+                    .clicked()
+                {
+                    ui.ctx().copy_text(name.clone());
+                    ui.close();
+                }
+                if ui
+                    .add(
+                        egui::Button::new(
+                            egui::RichText::new("Copy Path")
+                                .color(text_color)
+                                .size(12.0),
+                        )
+                        .fill(button_fill)
+                        .stroke(button_stroke)
+                        .corner_radius(6.0),
+                    )
+                    .clicked()
+                {
+                    ui.ctx().copy_text(path.display().to_string());
+                    ui.close();
+                }
+                if ui
+                    .add(
+                        egui::Button::new(
+                            egui::RichText::new("Copy Relative Path")
+                                .color(text_color)
+                                .size(12.0),
+                        )
+                        .fill(button_fill)
+                        .stroke(button_stroke)
+                        .corner_radius(6.0),
+                    )
+                    .clicked()
+                {
+                    if let Some(folder) = &self.opened_folder {
+                        if let Ok(rel_path) = path.strip_prefix(folder) {
+                            ui.ctx().copy_text(rel_path.display().to_string());
+                        } else {
+                            ui.ctx().copy_text(path.display().to_string());
+                        }
+                    } else {
+                        ui.ctx().copy_text(path.display().to_string());
+                    }
+                    ui.close();
+                }
+                ui.separator();
+
+                if ui
+                    .add(
+                        egui::Button::new(
+                            egui::RichText::new("Rename...")
+                                .color(text_color)
+                                .size(12.0),
+                        )
+                        .fill(button_fill)
+                        .stroke(button_stroke)
+                        .corner_radius(6.0),
+                    )
+                    .clicked()
+                {
+                    self.rename_path(path.clone());
+                    ui.close();
+                }
+                if ui
+                    .add(
+                        egui::Button::new(
+                            egui::RichText::new("Delete...")
+                                .color(text_color)
+                                .size(12.0),
+                        )
+                        .fill(button_fill)
+                        .stroke(button_stroke)
+                        .corner_radius(6.0),
+                    )
+                    .clicked()
+                {
+                    self.delete_path(path.clone());
+                    ui.close();
+                }
+            });
+        }
+
+        if is_expanded && is_dir {
+            if let Ok(entries) = std::fs::read_dir(path) {
+                let mut entries: Vec<_> = entries.filter_map(|e| e.ok()).collect();
+                // sort directories first, then files, both alphabetically
+                // might add exceptions for dotfiles / hidden folders and files
+                entries.sort_by(|a, b| {
+                    let a_is_dir = a.file_type().map(|t| t.is_dir()).unwrap_or(false);
+                    let b_is_dir = b.file_type().map(|t| t.is_dir()).unwrap_or(false);
+                    match (a_is_dir, b_is_dir) {
+                        (true, false) => std::cmp::Ordering::Less,
+                        (false, true) => std::cmp::Ordering::Greater,
+                        _ => a.file_name().cmp(&b.file_name()),
+                    }
+                });
+
+                for entry in entries {
+                    let child_path = entry.path();
+                    self.show_folder_tree(ui, &child_path, depth + 1);
+                }
+            }
+        }
+    }
+
+    fn show_git(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Source Control");
+        ui.separator();
+
+        ui.horizontal(|ui| {
+            if ui.button("🌸 Commit").clicked() {
+                self.set_status(
+                    "Commit support will be wired into the SCM layer next".to_string(),
+                    ui.ctx(),
+                );
+            }
+            if ui.button("↻ Refresh").clicked() {
+                self.set_status("Refreshing repository state".to_string(), ui.ctx());
+            }
+        });
+
+        ui.add_space(10.0);
+
+        let repository_status = self
+            .tabs
+            .active_tab_path()
+            .and_then(|path| self.get_scm_status(path));
+
+        match repository_status {
+            Some((kind, status)) => {
+                ui.label(format!("Repository: {}", kind));
+                ui.add_space(4.0);
+                ui.label("Changes");
+                ui.separator();
+
+                for line in status.lines().filter(|line| !line.trim().is_empty()) {
+                    ui.label(line);
+                }
+            }
+            _ => {
+                ui.label("No Git or Mercurial repository detected for the current file.");
+            }
+        }
+    }
+
+    fn show_extensions(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Extensions");
+        ui.separator();
+
+        let mut search = String::new();
+        ui.text_edit_singleline(&mut search);
+
+        ui.add_space(10.0);
+        ui.label("Installed");
+        ui.separator();
+        ui.label("No extensions installed");
+    }
+
+    fn show_tab_bar(&mut self, ctx: &egui::Context) {
+        egui::Panel::top("tab_bar")
+            .exact_size(35.0)
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.set_width(ui.available_width());
+
+                    let tab_count = self.tabs.tabs.len();
+                    let mut tab_to_close: Option<usize> = None;
+                    let mut tab_to_activate: Option<usize> = None;
+
+                    for i in 0..tab_count {
+                        let tab = &self.tabs.tabs[i];
+                        let is_active = i == self.tabs.active_tab;
+                        let is_modified = tab.is_modified;
+
+                        let bg_color = if is_active {
+                            CherryBlossomTheme::bg_mid()
+                        } else {
+                            CherryBlossomTheme::bg_dark()
+                        };
+
+                        let prefix = if is_modified { "● " } else { "" };
+                        let label_text = format!("{}{}", prefix, tab.name);
+
+                        let (rect, response) =
+                            ui.allocate_exact_size(egui::vec2(120.0, 30.0), egui::Sense::click());
+
+                        let radius = self.settings.corner_roundness.round() as u8;
+                        let corner_radius = egui::CornerRadius {
+                            nw: radius,
+                            ne: radius,
+                            sw: 0,
+                            se: 0,
+                        };
+                        ui.painter().rect_filled(rect, corner_radius, bg_color);
+
+                        if is_active {
+                            let accent_height =
+                                (self.settings.corner_roundness * 0.3).clamp(2.0, 8.0);
+                            let accent_rect = egui::Rect::from_min_size(
+                                rect.left_top(),
+                                egui::vec2(rect.width(), accent_height),
+                            );
+                            let accent_radius = egui::CornerRadius {
+                                nw: radius,
+                                ne: radius,
+                                sw: 0,
+                                se: 0,
+                            };
+                            ui.painter().rect_filled(
+                                accent_rect,
+                                accent_radius,
+                                CherryBlossomTheme::accent_pink(),
+                            );
+                        }
+
+                        let galley = ui.painter().layout(
+                            label_text.clone(),
+                            egui::FontId::new(12.0, egui::FontFamily::Proportional),
+                            if is_active {
+                                CherryBlossomTheme::text_primary()
+                            } else {
+                                CherryBlossomTheme::text_secondary()
+                            },
+                            100.0,
+                        );
+
+                        let text_pos =
+                            rect.left_center() + egui::vec2(10.0, -galley.size().y / 2.0);
+                        ui.painter()
+                            .galley(text_pos, galley, CherryBlossomTheme::text_primary());
+
+                        let close_rect = egui::Rect::from_min_size(
+                            rect.right_top() - egui::vec2(25.0, 0.0),
+                            egui::vec2(20.0, rect.height()),
+                        );
+                        let close_response = ui.interact(
+                            close_rect,
+                            egui::Id::new(("close", i)),
+                            egui::Sense::click(),
+                        );
+
+                        if close_response.hovered() || (is_active && close_response.hovered()) {
+                            ui.painter().text(
+                                close_rect.center(),
+                                egui::Align2::CENTER_CENTER,
+                                "×",
+                                egui::FontId::new(16.0, egui::FontFamily::Proportional),
+                                CherryBlossomTheme::text_primary(),
+                            );
+                        }
+
+                        if response.clicked() {
+                            tab_to_activate = Some(i);
+                        }
+
+                        if response.middle_clicked() {
+                            tab_to_close = Some(i);
+                        }
+
+                        if close_response.clicked() {
+                            tab_to_close = Some(i);
+                        }
+                    }
+
+                    if let Some(i) = tab_to_activate {
+                        self.tabs.set_active(i);
+                    }
+
+                    if let Some(i) = tab_to_close {
+                        let is_settings_tab = self
+                            .tabs
+                            .tabs
+                            .get(i)
+                            .map(|t| t.tab_type == tabs::TabType::Settings)
+                            .unwrap_or(false);
+
+                        if is_settings_tab && self.settings.has_unsaved_changes() {
+                            self.settings.request_close_with_confirmation();
+                        } else {
+                            self.tabs.close_tab(i);
+                        }
+                    }
+
+                    ui.add_space(5.0);
+
+                    let button_size = egui::vec2(30.0, 30.0);
+                    let (rect, response) =
+                        ui.allocate_exact_size(button_size, egui::Sense::click());
+
+                    let bg_color = if response.hovered() {
+                        CherryBlossomTheme::bg_light()
+                    } else {
+                        CherryBlossomTheme::bg_dark()
+                    };
+                    ui.painter().rect_filled(rect, 4.0, bg_color);
+
+                    ui.painter().text(
+                        rect.center(),
+                        egui::Align2::CENTER_CENTER,
+                        "+",
+                        egui::FontId::new(16.0, egui::FontFamily::Proportional),
+                        CherryBlossomTheme::text_primary(),
+                    );
+
+                    if response.clicked() {
+                        if self.settings.request_new_tab_with_confirmation() {
+                            self.tabs.new_tab();
+                        }
+                    }
+                });
+            });
+    }
+
+    fn show_welcome_screen(&mut self, ctx: &egui::Context) {
+        egui::CentralPanel::default()
+            .frame(
+                egui::Frame::central_panel(&ctx.global_style())
+                    .fill(CherryBlossomTheme::bg_darkest()),
+            )
+            .show(ctx, |ui| {
+                let recent_files_data: Vec<(std::path::PathBuf, String)> = self
+                    .get_relevant_recent_files()
+                    .into_iter()
+                    .take(self.settings.recent_files_limit)
+                    .map(|f| {
+                        let name = f
+                            .path
+                            .file_name()
+                            .map(|n| n.to_string_lossy().to_string())
+                            .unwrap_or_else(|| f.path.display().to_string());
+                        (f.path, name)
+                    })
+                    .collect();
+                let recent_projects_data: Vec<(std::path::PathBuf, String)> = self
+                    .recent_projects
+                    .iter()
+                    .take(self.settings.recent_projects_limit)
+                    .map(|p| {
+                        let name = p
+                            .file_name()
+                            .map(|n| n.to_string_lossy().to_string())
+                            .unwrap_or_else(|| p.display().to_string());
+                        (p.clone(), name)
+                    })
+                    .collect();
+                let has_recent_projects = !recent_projects_data.is_empty();
+                let has_recent_files = !recent_files_data.is_empty();
+                let has_project_folder = self.opened_folder.is_some();
+                let has_any_recents = has_recent_files || has_recent_projects;
+
+                ui.vertical_centered(|ui| {
+                    ui.add_space(ui.available_height() * 0.08);
+                    ui.add(
+                        egui::Label::new(
+                            egui::RichText::new("AsterIDE 🌸")
+                                .size(48.0)
+                                .color(CherryBlossomTheme::accent_pink()),
+                        )
+                        .selectable(false)
+                        .sense(egui::Sense::hover()),
+                    );
+                    ui.add_space(10.0);
+                    ui.add(
+                        egui::Label::new(
+                            egui::RichText::new("A Simple Text Editor written in Rust.")
+                                .size(16.0)
+                                .color(CherryBlossomTheme::text_secondary()),
+                        )
+                        .selectable(false)
+                        .sense(egui::Sense::hover()),
+                    );
+                });
+
+                ui.add_space(60.0);
+
+                ui.horizontal(|ui| {
+                    let total_width = ui.available_width();
+                    let total_width = total_width.max(400.0);
+                    let left_width = if has_any_recents {
+                        (total_width * 0.4).max(200.0)
+                    } else {
+                        total_width
+                    };
+                    let right_width = (total_width * 0.55).max(200.0);
+
+                    ui.allocate_ui_with_layout(
+                        egui::vec2(left_width, ui.available_height()),
+                        egui::Layout::top_down(egui::Align::Center),
+                        |ui| {
+                            egui::Frame::group(&ui.style())
+                                .fill(CherryBlossomTheme::bg_dark())
+                                .inner_margin(20.0)
+                                .stroke(egui::Stroke::new(1.0, CherryBlossomTheme::border_pink()))
+                                .show(ui, |ui| {
+                                    let button_size = egui::vec2(200.0, 40.0);
+                                    let button_stroke =
+                                        egui::Stroke::new(1.0, CherryBlossomTheme::border_pink());
+                                    if ui
+                                        .add_sized(
+                                            button_size,
+                                            egui::Button::new("📄  Open File")
+                                                .stroke(button_stroke),
+                                        )
+                                        .clicked()
+                                    {
+                                        self.open_file(ctx);
+                                    }
+                                    ui.add_space(10.0);
+                                    if ui
+                                        .add_sized(
+                                            button_size,
+                                            egui::Button::new("📁  Open Folder")
+                                                .stroke(button_stroke),
+                                        )
+                                        .clicked()
+                                    {
+                                        self.open_folder(ctx);
+                                    }
+                                    ui.add_space(10.0);
+                                    if ui
+                                        .add_sized(
+                                            button_size,
+                                            egui::Button::new("📝  New File").stroke(button_stroke),
+                                        )
+                                        .clicked()
+                                    {
+                                        if self.settings.request_new_tab_with_confirmation() {
+                                            self.tabs.new_tab();
+                                        }
+                                    }
+                                });
+                        },
+                    );
+
+                    if has_any_recents {
+                        ui.add_space(20.0);
+                        ui.vertical(|ui| {
+                            let available_height = ui.available_height();
+                            ui.add_space(available_height * 0.1);
+                            ui.add(egui::Separator::default().vertical().spacing(0.0));
+                            ui.add_space(available_height * 0.1);
+                        });
+                        ui.add_space(20.0);
+
+                        ui.allocate_ui_with_layout(
+                            egui::vec2(right_width, ui.available_height()),
+                            egui::Layout::top_down(egui::Align::LEFT),
+                            |ui| {
+                                egui::Frame::group(&ui.style())
+                                    .fill(CherryBlossomTheme::bg_dark())
+                                    .inner_margin(16.0)
+                                    .stroke(egui::Stroke::new(
+                                        1.0,
+                                        CherryBlossomTheme::border_pink(),
+                                    ))
+                                    .show(ui, |ui| {
+                                        ui.set_width(right_width - 32.0);
+
+                                        let recent_button_stroke = egui::Stroke::new(
+                                            1.0,
+                                            CherryBlossomTheme::border_pink(),
+                                        );
+
+                                        if has_recent_files {
+                                            let title = if has_project_folder {
+                                                let project_name = self
+                                                    .opened_folder
+                                                    .as_ref()
+                                                    .and_then(|p| p.file_name())
+                                                    .map(|n| n.to_string_lossy().to_string())
+                                                    .unwrap_or_else(|| "Project".to_string());
+                                                format!("Recent Files in {}", project_name)
+                                            } else {
+                                                "Recent Files".to_string()
+                                            };
+                                            ui.add(
+                                                egui::Label::new(
+                                                    egui::RichText::new(title)
+                                                        .size(16.0)
+                                                        .color(CherryBlossomTheme::text_primary()),
+                                                )
+                                                .selectable(false)
+                                                .sense(egui::Sense::hover()),
+                                            );
+                                            ui.add_space(10.0);
+
+                                            let mut clicked_file: Option<std::path::PathBuf> = None;
+                                            for (path, name) in &recent_files_data {
+                                                let file_path_str = path.display().to_string();
+                                                let response = ui.add(
+                                                    egui::Button::new(
+                                                        egui::RichText::new(format!(
+                                                            "📄  {}",
+                                                            file_path_str
+                                                        ))
+                                                        .color(CherryBlossomTheme::text_primary())
+                                                        .size(12.0),
+                                                    )
+                                                    .fill(CherryBlossomTheme::bg_mid())
+                                                    .stroke(recent_button_stroke)
+                                                    .min_size(egui::vec2(right_width - 50.0, 30.0)),
+                                                );
+
+                                                if response.clicked() {
+                                                    clicked_file = Some(path.clone());
+                                                }
+                                                response.on_hover_text(name.clone());
+                                            }
+
+                                            if let Some(path) = clicked_file {
+                                                if let Ok(content) = std::fs::read_to_string(&path)
+                                                {
+                                                    if !self
+                                                        .settings
+                                                        .request_file_open_with_confirmation(
+                                                            path.clone(),
+                                                            content.clone(),
+                                                        )
+                                                    {
+                                                        return;
+                                                    }
+                                                    self.tabs
+                                                        .open_file(path.clone(), content.clone());
+                                                    self.add_recent_file(path);
+                                                }
+                                            }
+
+                                            if has_recent_projects {
+                                                ui.add_space(20.0);
+                                                ui.separator();
+                                                ui.add_space(10.0);
+                                            }
+                                        }
+
+                                        if has_recent_projects {
+                                            ui.add(
+                                                egui::Label::new(
+                                                    egui::RichText::new("Recent Projects")
+                                                        .size(16.0)
+                                                        .color(CherryBlossomTheme::text_primary()),
+                                                )
+                                                .selectable(false)
+                                                .sense(egui::Sense::hover()),
+                                            );
+                                            ui.add_space(10.0);
+
+                                            let mut clicked_project: Option<std::path::PathBuf> =
+                                                None;
+                                            for (path, name) in &recent_projects_data {
+                                                let project_path_str = path.display().to_string();
+                                                let response = ui.add(
+                                                    egui::Button::new(
+                                                        egui::RichText::new(format!(
+                                                            "📁  {}",
+                                                            project_path_str
+                                                        ))
+                                                        .color(CherryBlossomTheme::text_primary())
+                                                        .size(12.0),
+                                                    )
+                                                    .fill(CherryBlossomTheme::bg_mid())
+                                                    .stroke(recent_button_stroke)
+                                                    .min_size(egui::vec2(right_width - 50.0, 30.0)),
+                                                );
+
+                                                if response.clicked() {
+                                                    clicked_project = Some(path.clone());
+                                                }
+                                                response.on_hover_text(name.clone());
+                                            }
+
+                                            if let Some(project) = clicked_project {
+                                                self.open_recent_project(&project);
+                                            }
+                                        }
+                                    });
+                            },
+                        );
+                    }
+                });
+            });
+    }
+
+    fn show_editor(&mut self, ctx: &egui::Context) {
+        self.settings.show_confirm_discard_dialog(ctx);
+
+        if self.tabs.is_empty() {
+            self.show_welcome_screen(ctx);
+            return;
+        }
+
+        let active_tab_type = self
             .tabs
             .active_tab()
             .map(|t| t.tab_type)
             .unwrap_or(TabType::File);
 
-          // Explorer is only active when sidebar tab is Explorer AND current tab is a file
-          // and the sidebar is visible.
-          let explorer_active = self.active_sidebar_tab == SidebarTab::Explorer
-            && active_tab_type == TabType::File
-            && self.settings.sidebar_visible;
-
-          if self.icon_button(ui, "📁", "Explorer", explorer_active, button_size) {
-            self.toggle_sidebar(SidebarTab::Explorer);
-          }
-
-          let search_active =
-            self.active_sidebar_tab == SidebarTab::Search && self.settings.sidebar_visible;
-          if self.icon_button(ui, "🔍", "Search", search_active, button_size) {
-            self.tabs.open_search_tab();
-          }
-
-          let git_active =
-            self.active_sidebar_tab == SidebarTab::Git && self.settings.sidebar_visible;
-          if self.icon_button(ui, "🌸", "Git", git_active, button_size) {
-            self.toggle_sidebar(SidebarTab::Git);
-          }
-
-          let ext_active =
-            self.active_sidebar_tab == SidebarTab::Extensions && self.settings.sidebar_visible;
-          if self.icon_button(ui, "📦", "Extensions", ext_active, button_size) {
-            self.toggle_sidebar(SidebarTab::Extensions);
-          }
-
-          ui.add_space(ui.available_height() - 50.0);
-
-          let settings_active = self
-            .tabs
-            .active_tab()
-            .map(|t| t.tab_type == TabType::Settings)
-            .unwrap_or(false);
-          if self.icon_button(ui, "⚙", "Settings", settings_active, button_size) {
-            self.tabs.open_settings_tab();
-          }
-        });
-      });
-  }
-
-  fn icon_button(
-    &self,
-    ui: &mut egui::Ui,
-    icon: &str,
-    _tooltip: &str,
-    active: bool,
-    size: egui::Vec2,
-  ) -> bool {
-    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
-
-    let _visuals = ui.style().interact(&response);
-    let bg_color = if active {
-      CherryBlossomTheme::bg_mid()
-    } else if response.hovered() {
-      CherryBlossomTheme::bg_light()
-    } else {
-      CherryBlossomTheme::bg_dark()
-    };
-
-    ui.painter().rect_filled(rect, 6.0, bg_color);
-
-    if active {
-      ui.painter().rect_filled(
-        egui::Rect::from_min_size(rect.left_top(), egui::vec2(3.0, rect.height())),
-        0.0,
-        CherryBlossomTheme::accent_pink(),
-      );
-    }
-
-    let fg_color = if active {
-      CherryBlossomTheme::accent_pink()
-    } else if response.hovered() {
-      CherryBlossomTheme::text_primary()
-    } else {
-      CherryBlossomTheme::text_secondary()
-    };
-
-    let galley = ui.painter().layout(
-      icon.to_string(),
-      egui::FontId::new(22.0, egui::FontFamily::Proportional),
-      fg_color,
-      size.x,
-    );
-
-    let text_pos = rect.center() - galley.size() / 2.0;
-    ui.painter()
-      .galley(text_pos, galley, CherryBlossomTheme::text_primary());
-
-    response.clicked()
-  }
-
-  fn toggle_sidebar(&mut self, tab: SidebarTab) {
-    let old_visibility = self.settings.sidebar_visible;
-
-    if self.active_sidebar_tab == tab && self.settings.sidebar_visible {
-      self.settings.sidebar_visible = false;
-    } else {
-      self.active_sidebar_tab = tab;
-      self.settings.sidebar_visible = true;
-    }
-
-    if old_visibility != self.settings.sidebar_visible {}
-  }
-
-  fn show_sidebar(&mut self, ctx: &egui::Context) {
-    if !self.settings.sidebar_visible {
-      return;
-    }
-
-    let panel_response = egui::Panel::left("sidebar")
-      .default_width(self.sidebar_width.clamp(250.0, 550.0))
-      .min_width(250.0)
-      .max_width(550.0)
-      .resizable(true)
-      .show(ctx, |ui| {
-        ui.set_height(ui.available_height());
-
-        match self.active_sidebar_tab {
-          SidebarTab::Explorer => self.show_explorer(ui),
-          SidebarTab::Search => search::show_search_button(ui),
-          SidebarTab::Git => self.show_git(ui),
-          SidebarTab::Extensions => self.show_extensions(ui),
-        }
-      });
-
-    let new_width: f32 = panel_response.response.rect.width();
-
-    if new_width.is_finite() && new_width > 0.0 && (new_width - self.sidebar_width).abs() > 1.0 {
-      self.sidebar_width = new_width;
-    }
-  }
-
-  fn show_explorer(&mut self, ui: &mut egui::Ui) {
-    ui.horizontal(|ui| {
-      let heading_text = self
-        .opened_folder
-        .as_ref()
-        .and_then(|p| p.file_name())
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| "Explorer".to_string());
-      ui.heading(heading_text);
-      ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-        let button_size = egui::vec2(24.0, 24.0);
-        let button_fill = lerp_color(
-          CherryBlossomTheme::bg_darkest(),
-          CherryBlossomTheme::bg_light(),
-          0.3,
-        );
-        let button_stroke = egui::Stroke::new(
-          0.5,
-          lerp_color(
-            CherryBlossomTheme::border_pink(),
-            CherryBlossomTheme::bg_light(),
-            0.5,
-          ),
-        );
-        let text_color = CherryBlossomTheme::text_secondary();
-
-        if ui
-          .add_sized(
-            button_size,
-            egui::Button::new(egui::RichText::new("⬇").color(text_color).size(13.0))
-              .fill(button_fill)
-              .stroke(button_stroke)
-              .corner_radius(6.0),
-          )
-          .clicked()
-        {
-          self.expanded_folders.clear();
-        }
-        if ui
-          .add_sized(
-            button_size,
-            egui::Button::new(egui::RichText::new("🔄").color(text_color).size(13.0))
-              .fill(button_fill)
-              .stroke(button_stroke)
-              .corner_radius(6.0),
-          )
-          .clicked()
-        {}
-        if ui
-          .add_sized(
-            button_size,
-            egui::Button::new(egui::RichText::new("📁+").color(text_color).size(13.0))
-              .fill(button_fill)
-              .stroke(button_stroke)
-              .corner_radius(6.0),
-          )
-          .clicked()
-        {
-          self.create_new_folder();
-        }
-        if ui
-          .add_sized(
-            button_size,
-            egui::Button::new(egui::RichText::new("📄+").color(text_color).size(13.0))
-              .fill(button_fill)
-              .stroke(button_stroke)
-              .corner_radius(6.0),
-          )
-          .clicked()
-        {
-          if self.settings.request_new_tab_with_confirmation() {
-            self.tabs.new_tab();
-          }
-        }
-      });
-    });
-    ui.add_space(8.0);
-
-    egui::ScrollArea::vertical()
-      .id_salt("explorer_scroll")
-      .show(ui, |ui| {
-        if let Some(folder) = self.opened_folder.clone() {
-          self.show_folder_tree(ui, &folder, 0);
-        } else {
-          ui.vertical_centered(|ui| {
-            ui.add_space(40.0);
-            ui.label(egui::RichText::new("📂").size(48.0));
-            ui.add_space(12.0);
-            ui.label(
-              egui::RichText::new("No folder opened")
-                .size(14.0)
-                .color(CherryBlossomTheme::text_muted()),
-            );
-            ui.add_space(16.0);
-            let button_fill = lerp_color(
-              CherryBlossomTheme::bg_darkest(),
-              CherryBlossomTheme::bg_light(),
-              0.3,
-            );
-            let button_stroke = egui::Stroke::new(
-              0.5,
-              lerp_color(
-                CherryBlossomTheme::border_pink(),
-                CherryBlossomTheme::bg_light(),
-                0.5,
-              ),
-            );
-            if ui
-              .add(
-                egui::Button::new(
-                  egui::RichText::new("📂 Open Folder")
-                    .color(CherryBlossomTheme::text_secondary())
-                    .size(13.0),
+        if active_tab_type == TabType::Settings {
+            egui::CentralPanel::default()
+                .frame(
+                    egui::Frame::central_panel(&ctx.global_style())
+                        .fill(CherryBlossomTheme::bg_darkest()),
                 )
-                .fill(button_fill)
-                .stroke(button_stroke)
-                .corner_radius(8.0),
-              )
-              .clicked()
-            {
-              self.open_folder_dialog();
-            }
-          });
-        }
-
-        ui.add_space(16.0);
-        ui.vertical(|ui| {
-          ui.add(
-            egui::Label::new(
-              egui::RichText::new("Open Editors")
-                .size(12.0)
-                .strong()
-                .color(CherryBlossomTheme::text_muted()),
-            )
-            .selectable(false),
-          );
-          ui.add_space(6.0);
-        });
-
-        let tab_count = self.tabs.tabs.len();
-        for i in 0..tab_count {
-          let tab = &self.tabs.tabs[i];
-          let is_active = i == self.tabs.active_tab;
-
-          let button_height = 32.0;
-          let available_width = ui.available_width();
-
-          let (rect, response) = ui.allocate_exact_size(
-            egui::vec2(available_width, button_height),
-            egui::Sense::click(),
-          );
-
-          let bg_color = if is_active {
-            lerp_color(
-              CherryBlossomTheme::bg_darkest(),
-              CherryBlossomTheme::bg_light(),
-              0.4,
-            )
-          } else if response.hovered() {
-            lerp_color(
-              CherryBlossomTheme::bg_darkest(),
-              CherryBlossomTheme::bg_light(),
-              0.2,
-            )
-          } else {
-            egui::Color32::TRANSPARENT
-          };
-
-          let corner_radius = 8.0;
-          ui.painter().rect_filled(rect, corner_radius, bg_color);
-
-          if is_active {
-            let indicator_rect = egui::Rect::from_min_size(
-              rect.left_top() + egui::vec2(6.0, 8.0),
-              egui::vec2(3.0, button_height - 16.0),
-            );
-            ui.painter().rect_filled(
-              indicator_rect,
-              1.5,
-              lerp_color(
-                CherryBlossomTheme::accent_pink(),
-                CherryBlossomTheme::bg_light(),
-                0.3,
-              ),
-            );
-          }
-
-          let modified_dot_x = if is_active { 20.0 } else { 16.0 };
-          if tab.is_modified {
-            let dot_rect = egui::Rect::from_center_size(
-              rect.left_center() + egui::vec2(modified_dot_x, 0.0),
-              egui::vec2(5.0, 5.0),
-            );
-            ui.painter().circle_filled(
-              dot_rect.center(),
-              2.5,
-              lerp_color(
-                CherryBlossomTheme::accent_hot(),
-                CherryBlossomTheme::bg_light(),
-                0.4,
-              ),
-            );
-          }
-
-          let text_offset = if tab.is_modified {
-            modified_dot_x + 10.0
-          } else {
-            modified_dot_x
-          };
-          let text_color = if is_active {
-            CherryBlossomTheme::text_primary()
-          } else {
-            CherryBlossomTheme::text_secondary()
-          };
-
-          ui.painter().text(
-            rect.left_center() + egui::vec2(text_offset, 0.0),
-            egui::Align2::LEFT_CENTER,
-            &tab.name,
-            egui::FontId::new(12.5, egui::FontFamily::Proportional),
-            text_color,
-          );
-
-          if response.clicked() {
-            self.tabs.set_active(i);
-          }
-
-          ui.add_space(4.0);
-        }
-      });
-  }
-
-  fn show_folder_tree(&mut self, ui: &mut egui::Ui, path: &std::path::PathBuf, depth: usize) {
-    let is_expanded = self.expanded_folders.contains(path);
-    let is_dir = path.is_dir();
-
-    let name = path
-      .file_name()
-      .map(|n| n.to_string_lossy().to_string())
-      .unwrap_or_else(|| path.to_string_lossy().to_string());
-
-    let icon = if is_dir {
-      if is_expanded { "📂" } else { "📁" }
-    } else {
-      "📄"
-    };
-
-    let is_open = self.tabs.is_file_open(path);
-    let is_current = self
-      .tabs
-      .active_tab_path()
-      .map(|p| *p == *path)
-      .unwrap_or(false);
-
-    let _indent = "  ".repeat(depth);
-
-    let (_prefix, _suffix) = if is_current {
-      ("> ", "")
-    } else if is_open {
-      let is_modified = self.tabs.is_file_modified(path);
-      if is_modified {
-        ("- ", " [M]")
-      } else {
-        ("- ", "")
-      }
-    } else {
-      ("  ", "")
-    };
-
-    let is_renaming = self
-      .renaming_path
-      .as_ref()
-      .map(|(p, _)| p == path)
-      .unwrap_or(false);
-
-    if is_renaming {
-      let rename_text = self.renaming_path.as_mut().map(|(_, n)| n).unwrap();
-      let text_edit = ui.add(
-        egui::TextEdit::singleline(rename_text)
-          .desired_width(ui.available_width())
-          .font(egui::FontId::new(13.0, egui::FontFamily::Proportional)),
-      );
-
-      if text_edit.lost_focus() {
-        if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-          let new_name = rename_text.clone();
-          self.finish_rename(&new_name);
-        } else if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
-          self.renaming_path = None;
-        }
-      }
-
-      if text_edit.ctx.input(|i| i.time) > 0.0 && !text_edit.has_focus() {
-        text_edit.request_focus();
-      }
-    } else {
-      let item_height = 28.0 + self.settings.tree_spacing;
-      let available_width = ui.available_width();
-      let (rect, response) = ui.allocate_exact_size(
-        egui::vec2(available_width, item_height),
-        egui::Sense::click(),
-      );
-
-      let bg_color = if is_current {
-        lerp_color(
-          CherryBlossomTheme::bg_darkest(),
-          CherryBlossomTheme::bg_light(),
-          0.35,
-        )
-      } else if response.hovered() {
-        lerp_color(
-          CherryBlossomTheme::bg_darkest(),
-          CherryBlossomTheme::bg_light(),
-          0.15,
-        )
-      } else {
-        egui::Color32::TRANSPARENT
-      };
-
-      let corner_radius = 6.0;
-      ui.painter().rect_filled(rect, corner_radius, bg_color);
-
-      if is_current {
-        let indicator_rect = egui::Rect::from_min_size(
-          rect.left_top() + egui::vec2(4.0, 6.0 + self.settings.tree_spacing / 2.0),
-          egui::vec2(2.5, item_height - 12.0 - self.settings.tree_spacing),
-        );
-        ui.painter().rect_filled(
-          indicator_rect,
-          1.25,
-          lerp_color(
-            CherryBlossomTheme::accent_pink(),
-            CherryBlossomTheme::bg_light(),
-            0.3,
-          ),
-        );
-      }
-
-      let icon_size = 14.0;
-      let text_size = 12.5;
-      let indent_pixels = depth as f32 * 16.0;
-      let icon_x = indent_pixels + 8.0;
-      let text_x = icon_x + 20.0;
-
-      let text_color = if is_current {
-        CherryBlossomTheme::text_primary()
-      } else if is_open {
-        CherryBlossomTheme::text_secondary()
-      } else {
-        CherryBlossomTheme::text_muted()
-      };
-
-      ui.painter().text(
-        rect.left_center() + egui::vec2(icon_x, 0.0),
-        egui::Align2::LEFT_CENTER,
-        icon,
-        egui::FontId::new(icon_size, egui::FontFamily::Proportional),
-        text_color,
-      );
-
-      ui.painter().text(
-        rect.left_center() + egui::vec2(text_x, 0.0),
-        egui::Align2::LEFT_CENTER,
-        &name,
-        egui::FontId::new(text_size, egui::FontFamily::Proportional),
-        text_color,
-      );
-
-      if is_open && !is_current {
-        let is_modified = self.tabs.is_file_modified(path);
-        if is_modified {
-          let dot_rect = egui::Rect::from_center_size(
-            rect.right_center() - egui::vec2(16.0, 0.0),
-            egui::vec2(4.0, 4.0),
-          );
-          ui.painter().circle_filled(
-            dot_rect.center(),
-            2.0,
-            lerp_color(
-              CherryBlossomTheme::accent_hot(),
-              CherryBlossomTheme::bg_light(),
-              0.4,
-            ),
-          );
-        }
-      }
-
-      ui.add_space(self.settings.tree_spacing);
-
-      if response.clicked() {
-        if is_dir {
-          if is_expanded {
-            self.expanded_folders.remove(path);
-          } else {
-            self.expanded_folders.insert(path.clone());
-          }
-        } else {
-          if let Ok(content) = std::fs::read_to_string(&path) {
-            if !self
-              .settings
-              .request_file_open_with_confirmation(path.clone(), content.clone())
-            {
-              return;
-            }
-            self.tabs.open_file(path.clone(), content);
-            self.add_recent_file(path.to_path_buf());
-          }
-        }
-      }
-
-      if response.middle_clicked() && !is_dir {
-        if let Ok(content) = std::fs::read_to_string(&path) {
-          if !self
-            .settings
-            .request_file_open_with_confirmation(path.clone(), content.clone())
-          {
-            return;
-          }
-          self.tabs.open_file_in_background(path.clone(), content);
-          self.add_recent_file(path.to_path_buf());
-        }
-      }
-
-      response.context_menu(|ui| {
-        ui.style_mut().visuals.widgets.hovered.weak_bg_fill = lerp_color(
-          CherryBlossomTheme::bg_darkest(),
-          CherryBlossomTheme::bg_light(),
-          0.15,
-        );
-        ui.style_mut().visuals.widgets.hovered.bg_fill = lerp_color(
-          CherryBlossomTheme::bg_darkest(),
-          CherryBlossomTheme::bg_light(),
-          0.15,
-        );
-
-        let button_fill = lerp_color(
-          CherryBlossomTheme::bg_darkest(),
-          CherryBlossomTheme::bg_light(),
-          0.2,
-        );
-        let button_stroke = egui::Stroke::new(
-          0.5,
-          lerp_color(
-            CherryBlossomTheme::border_pink(),
-            CherryBlossomTheme::bg_light(),
-            0.6,
-          ),
-        );
-        let text_color = CherryBlossomTheme::text_secondary();
-        if !is_dir {
-          if ui
-            .add(
-              egui::Button::new(egui::RichText::new("Open").color(text_color).size(12.0))
-                .fill(button_fill)
-                .stroke(button_stroke)
-                .corner_radius(6.0),
-            )
-            .clicked()
-          {
-            if let Ok(content) = std::fs::read_to_string(&path) {
-              if !self
-                .settings
-                .request_file_open_with_confirmation(path.clone(), content.clone())
-              {
-                ui.close();
-                return;
-              }
-              self.tabs.open_file(path.clone(), content);
-              self.add_recent_file(path.to_path_buf());
-            }
-            ui.close();
-          }
-          if ui
-            .add(
-              egui::Button::new(
-                egui::RichText::new("Open in Background")
-                  .color(text_color)
-                  .size(12.0),
-              )
-              .fill(button_fill)
-              .stroke(button_stroke)
-              .corner_radius(6.0),
-            )
-            .clicked()
-          {
-            if let Ok(content) = std::fs::read_to_string(&path) {
-              if !self
-                .settings
-                .request_file_open_with_confirmation(path.clone(), content.clone())
-              {
-                ui.close();
-                return;
-              }
-              self.tabs.open_file_in_background(path.clone(), content);
-              self.add_recent_file(path.to_path_buf());
-            }
-            ui.close();
-          }
-
-          ui.separator();
-
-          let is_pinned = self.settings.pinned_files.contains(&path);
-
-          if is_pinned {
-            if ui
-              .add(
-                egui::Button::new(
-                  egui::RichText::new("📌 Unpin File")
-                    .color(text_color)
-                    .size(12.0),
-                )
-                .fill(button_fill)
-                .stroke(button_stroke)
-                .corner_radius(6.0),
-              )
-              .clicked()
-            {
-              self.settings.pinned_files.retain(|p| p != path);
-              ui.close();
-            }
-          } else {
-            if ui
-              .add(
-                egui::Button::new(
-                  egui::RichText::new("📌 Pin File")
-                    .color(text_color)
-                    .size(12.0),
-                )
-                .fill(button_fill)
-                .stroke(button_stroke)
-                .corner_radius(6.0),
-              )
-              .clicked()
-            {
-              if !self.settings.pinned_files.contains(&path) {
-                self.settings.pinned_files.push(path.clone());
-              }
-              ui.close();
-            }
-          }
-          ui.separator();
-        }
-
-        if is_dir {
-          if ui
-            .add(
-              egui::Button::new(
-                egui::RichText::new("📁 New Folder...")
-                  .color(text_color)
-                  .size(12.0),
-              )
-              .fill(button_fill)
-              .stroke(button_stroke)
-              .corner_radius(6.0),
-            )
-            .clicked()
-          {
-            self.create_new_folder_in_folder(path);
-            ui.close();
-          }
-          if ui
-            .add(
-              egui::Button::new(
-                egui::RichText::new("📄 New File...")
-                  .color(text_color)
-                  .size(12.0),
-              )
-              .fill(button_fill)
-              .stroke(button_stroke)
-              .corner_radius(6.0),
-            )
-            .clicked()
-          {
-            self.create_new_file_in_folder(path);
-            ui.close();
-          }
-          ui.separator();
-        }
-
-        if ui
-          .add(
-            egui::Button::new(egui::RichText::new("Copy").color(text_color).size(12.0))
-              .fill(button_fill)
-              .stroke(button_stroke)
-              .corner_radius(6.0),
-          )
-          .clicked()
-        {
-          ui.ctx().copy_text(name.clone());
-          ui.close();
-        }
-        if ui
-          .add(
-            egui::Button::new(
-              egui::RichText::new("Copy Path")
-                .color(text_color)
-                .size(12.0),
-            )
-            .fill(button_fill)
-            .stroke(button_stroke)
-            .corner_radius(6.0),
-          )
-          .clicked()
-        {
-          ui.ctx().copy_text(path.display().to_string());
-          ui.close();
-        }
-        if ui
-          .add(
-            egui::Button::new(
-              egui::RichText::new("Copy Relative Path")
-                .color(text_color)
-                .size(12.0),
-            )
-            .fill(button_fill)
-            .stroke(button_stroke)
-            .corner_radius(6.0),
-          )
-          .clicked()
-        {
-          if let Some(folder) = &self.opened_folder {
-            if let Ok(rel_path) = path.strip_prefix(folder) {
-              ui.ctx().copy_text(rel_path.display().to_string());
-            } else {
-              ui.ctx().copy_text(path.display().to_string());
-            }
-          } else {
-            ui.ctx().copy_text(path.display().to_string());
-          }
-          ui.close();
-        }
-        ui.separator();
-
-        if ui
-          .add(
-            egui::Button::new(
-              egui::RichText::new("Rename...")
-                .color(text_color)
-                .size(12.0),
-            )
-            .fill(button_fill)
-            .stroke(button_stroke)
-            .corner_radius(6.0),
-          )
-          .clicked()
-        {
-          self.rename_path(path.clone());
-          ui.close();
-        }
-        if ui
-          .add(
-            egui::Button::new(
-              egui::RichText::new("Delete...")
-                .color(text_color)
-                .size(12.0),
-            )
-            .fill(button_fill)
-            .stroke(button_stroke)
-            .corner_radius(6.0),
-          )
-          .clicked()
-        {
-          self.delete_path(path.clone());
-          ui.close();
-        }
-      });
-    }
-
-    if is_expanded && is_dir {
-      if let Ok(entries) = std::fs::read_dir(path) {
-        let mut entries: Vec<_> = entries.filter_map(|e| e.ok()).collect();
-        // sort directories first, then files, both alphabetically
-        // might add exceptions for dotfiles / hidden folders and files
-        entries.sort_by(|a, b| {
-          let a_is_dir = a.file_type().map(|t| t.is_dir()).unwrap_or(false);
-          let b_is_dir = b.file_type().map(|t| t.is_dir()).unwrap_or(false);
-          match (a_is_dir, b_is_dir) {
-            (true, false) => std::cmp::Ordering::Less,
-            (false, true) => std::cmp::Ordering::Greater,
-            _ => a.file_name().cmp(&b.file_name()),
-          }
-        });
-
-        for entry in entries {
-          let child_path = entry.path();
-          self.show_folder_tree(ui, &child_path, depth + 1);
-        }
-      }
-    }
-  }
-
-  fn show_git(&mut self, ui: &mut egui::Ui) {
-    ui.heading("Source Control");
-    ui.separator();
-
-    ui.horizontal(|ui| {
-      if ui.button("🌸 Commit").clicked() {
-        self.set_status(
-          "Commit support will be wired into the SCM layer next".to_string(),
-          ui.ctx(),
-        );
-      }
-      if ui.button("↻ Refresh").clicked() {
-        self.set_status("Refreshing repository state".to_string(), ui.ctx());
-      }
-    });
-
-    ui.add_space(10.0);
-
-    let repository_status = self
-      .tabs
-      .active_tab_path()
-      .and_then(|path| self.get_scm_status(path));
-
-    match repository_status {
-      Some((kind, status)) => {
-        ui.label(format!("Repository: {}", kind));
-        ui.add_space(4.0);
-        ui.label("Changes");
-        ui.separator();
-
-        for line in status.lines().filter(|line| !line.trim().is_empty()) {
-          ui.label(line);
-        }
-      }
-      _ => {
-        ui.label("No Git or Mercurial repository detected for the current file.");
-      }
-    }
-  }
-
-  fn show_extensions(&mut self, ui: &mut egui::Ui) {
-    ui.heading("Extensions");
-    ui.separator();
-
-    let mut search = String::new();
-    ui.text_edit_singleline(&mut search);
-
-    ui.add_space(10.0);
-    ui.label("Installed");
-    ui.separator();
-    ui.label("No extensions installed");
-  }
-
-  fn show_tab_bar(&mut self, ctx: &egui::Context) {
-    egui::Panel::top("tab_bar")
-      .exact_size(35.0)
-      .show(ctx, |ui| {
-        ui.horizontal(|ui| {
-          ui.set_width(ui.available_width());
-
-          let tab_count = self.tabs.tabs.len();
-          let mut tab_to_close: Option<usize> = None;
-          let mut tab_to_activate: Option<usize> = None;
-
-          for i in 0..tab_count {
-            let tab = &self.tabs.tabs[i];
-            let is_active = i == self.tabs.active_tab;
-            let is_modified = tab.is_modified;
-
-            let bg_color = if is_active {
-              CherryBlossomTheme::bg_mid()
-            } else {
-              CherryBlossomTheme::bg_dark()
-            };
-
-            let prefix = if is_modified { "● " } else { "" };
-            let label_text = format!("{}{}", prefix, tab.name);
-
-            let (rect, response) =
-              ui.allocate_exact_size(egui::vec2(120.0, 30.0), egui::Sense::click());
-
-            let radius = self.settings.corner_roundness.round() as u8;
-            let corner_radius = egui::CornerRadius {
-              nw: radius,
-              ne: radius,
-              sw: 0,
-              se: 0,
-            };
-            ui.painter().rect_filled(rect, corner_radius, bg_color);
-
-            if is_active {
-              let accent_height = (self.settings.corner_roundness * 0.3).clamp(2.0, 8.0);
-              let accent_rect =
-                egui::Rect::from_min_size(rect.left_top(), egui::vec2(rect.width(), accent_height));
-              let accent_radius = egui::CornerRadius {
-                nw: radius,
-                ne: radius,
-                sw: 0,
-                se: 0,
-              };
-              ui.painter().rect_filled(
-                accent_rect,
-                accent_radius,
-                CherryBlossomTheme::accent_pink(),
-              );
-            }
-
-            let galley = ui.painter().layout(
-              label_text.clone(),
-              egui::FontId::new(12.0, egui::FontFamily::Proportional),
-              if is_active {
-                CherryBlossomTheme::text_primary()
-              } else {
-                CherryBlossomTheme::text_secondary()
-              },
-              100.0,
-            );
-
-            let text_pos = rect.left_center() + egui::vec2(10.0, -galley.size().y / 2.0);
-            ui.painter()
-              .galley(text_pos, galley, CherryBlossomTheme::text_primary());
-
-            let close_rect = egui::Rect::from_min_size(
-              rect.right_top() - egui::vec2(25.0, 0.0),
-              egui::vec2(20.0, rect.height()),
-            );
-            let close_response = ui.interact(
-              close_rect,
-              egui::Id::new(("close", i)),
-              egui::Sense::click(),
-            );
-
-            if close_response.hovered() || (is_active && close_response.hovered()) {
-              ui.painter().text(
-                close_rect.center(),
-                egui::Align2::CENTER_CENTER,
-                "×",
-                egui::FontId::new(16.0, egui::FontFamily::Proportional),
-                CherryBlossomTheme::text_primary(),
-              );
-            }
-
-            if response.clicked() {
-              tab_to_activate = Some(i);
-            }
-
-            if response.middle_clicked() {
-              tab_to_close = Some(i);
-            }
-
-            if close_response.clicked() {
-              tab_to_close = Some(i);
-            }
-          }
-
-          if let Some(i) = tab_to_activate {
-            self.tabs.set_active(i);
-          }
-
-          if let Some(i) = tab_to_close {
-            let is_settings_tab = self
-              .tabs
-              .tabs
-              .get(i)
-              .map(|t| t.tab_type == tabs::TabType::Settings)
-              .unwrap_or(false);
-
-            if is_settings_tab && self.settings.has_unsaved_changes() {
-              self.settings.request_close_with_confirmation();
-            } else {
-              self.tabs.close_tab(i);
-            }
-          }
-
-          ui.add_space(5.0);
-
-          let button_size = egui::vec2(30.0, 30.0);
-          let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
-
-          let bg_color = if response.hovered() {
-            CherryBlossomTheme::bg_light()
-          } else {
-            CherryBlossomTheme::bg_dark()
-          };
-          ui.painter().rect_filled(rect, 4.0, bg_color);
-
-          ui.painter().text(
-            rect.center(),
-            egui::Align2::CENTER_CENTER,
-            "+",
-            egui::FontId::new(16.0, egui::FontFamily::Proportional),
-            CherryBlossomTheme::text_primary(),
-          );
-
-          if response.clicked() {
-            if self.settings.request_new_tab_with_confirmation() {
-              self.tabs.new_tab();
-            }
-          }
-        });
-      });
-  }
-
-  fn show_welcome_screen(&mut self, ctx: &egui::Context) {
-    egui::CentralPanel::default()
-      .frame(egui::Frame::central_panel(&ctx.global_style()).fill(CherryBlossomTheme::bg_darkest()))
-      .show(ctx, |ui| {
-        let recent_files_data: Vec<(std::path::PathBuf, String)> = self
-          .get_relevant_recent_files()
-          .into_iter()
-          .take(self.settings.recent_files_limit)
-          .map(|f| {
-            let name = f
-              .path
-              .file_name()
-              .map(|n| n.to_string_lossy().to_string())
-              .unwrap_or_else(|| f.path.display().to_string());
-            (f.path, name)
-          })
-          .collect();
-        let recent_projects_data: Vec<(std::path::PathBuf, String)> = self
-          .recent_projects
-          .iter()
-          .take(self.settings.recent_projects_limit)
-          .map(|p| {
-            let name = p
-              .file_name()
-              .map(|n| n.to_string_lossy().to_string())
-              .unwrap_or_else(|| p.display().to_string());
-            (p.clone(), name)
-          })
-          .collect();
-        let has_recent_projects = !recent_projects_data.is_empty();
-        let has_recent_files = !recent_files_data.is_empty();
-        let has_project_folder = self.opened_folder.is_some();
-        let has_any_recents = has_recent_files || has_recent_projects;
-
-        ui.vertical_centered(|ui| {
-          ui.add_space(ui.available_height() * 0.08);
-          ui.add(
-            egui::Label::new(
-              egui::RichText::new("AsterIDE 🌸")
-                .size(48.0)
-                .color(CherryBlossomTheme::accent_pink()),
-            )
-            .selectable(false)
-            .sense(egui::Sense::hover()),
-          );
-          ui.add_space(10.0);
-          ui.add(
-            egui::Label::new(
-              egui::RichText::new("A Simple Text Editor written in Rust.")
-                .size(16.0)
-                .color(CherryBlossomTheme::text_secondary()),
-            )
-            .selectable(false)
-            .sense(egui::Sense::hover()),
-          );
-        });
-
-        ui.add_space(60.0);
-
-        ui.horizontal(|ui| {
-          let total_width = ui.available_width();
-          let total_width = total_width.max(400.0);
-          let left_width = if has_any_recents {
-            (total_width * 0.4).max(200.0)
-          } else {
-            total_width
-          };
-          let right_width = (total_width * 0.55).max(200.0);
-
-          ui.allocate_ui_with_layout(
-            egui::vec2(left_width, ui.available_height()),
-            egui::Layout::top_down(egui::Align::Center),
-            |ui| {
-              egui::Frame::group(&ui.style())
-                .fill(CherryBlossomTheme::bg_dark())
-                .inner_margin(20.0)
-                .stroke(egui::Stroke::new(1.0, CherryBlossomTheme::border_pink()))
-                .show(ui, |ui| {
-                  let button_size = egui::vec2(200.0, 40.0);
-                  let button_stroke = egui::Stroke::new(1.0, CherryBlossomTheme::border_pink());
-                  if ui
-                    .add_sized(
-                      button_size,
-                      egui::Button::new("📄  Open File").stroke(button_stroke),
-                    )
-                    .clicked()
-                  {
-                    self.open_file(ctx);
-                  }
-                  ui.add_space(10.0);
-                  if ui
-                    .add_sized(
-                      button_size,
-                      egui::Button::new("📁  Open Folder").stroke(button_stroke),
-                    )
-                    .clicked()
-                  {
-                    self.open_folder(ctx);
-                  }
-                  ui.add_space(10.0);
-                  if ui
-                    .add_sized(
-                      button_size,
-                      egui::Button::new("📝  New File").stroke(button_stroke),
-                    )
-                    .clicked()
-                  {
-                    if self.settings.request_new_tab_with_confirmation() {
-                      self.tabs.new_tab();
-                    }
-                  }
+                .show(ctx, |ui| {
+                    ui.set_height(ui.available_height());
+                    self.settings.show_content(ui);
                 });
-            },
-          );
 
-          if has_any_recents {
-            ui.add_space(20.0);
-            ui.vertical(|ui| {
-              let available_height = ui.available_height();
-              ui.add_space(available_height * 0.1);
-              ui.add(egui::Separator::default().vertical().spacing(0.0));
-              ui.add_space(available_height * 0.1);
-            });
-            ui.add_space(20.0);
+            if self.settings.apply_changes_clicked {
+                self.settings.apply_changes_clicked = false;
+                self.settings.apply_changes();
+            }
 
-            ui.allocate_ui_with_layout(
-              egui::vec2(right_width, ui.available_height()),
-              egui::Layout::top_down(egui::Align::LEFT),
-              |ui| {
-                egui::Frame::group(&ui.style())
-                  .fill(CherryBlossomTheme::bg_dark())
-                  .inner_margin(16.0)
-                  .stroke(egui::Stroke::new(1.0, CherryBlossomTheme::border_pink()))
-                  .show(ui, |ui| {
-                    ui.set_width(right_width - 32.0);
-
-                    let recent_button_stroke =
-                      egui::Stroke::new(1.0, CherryBlossomTheme::border_pink());
-
-                    if has_recent_files {
-                      let title = if has_project_folder {
-                        let project_name = self
-                          .opened_folder
-                          .as_ref()
-                          .and_then(|p| p.file_name())
-                          .map(|n| n.to_string_lossy().to_string())
-                          .unwrap_or_else(|| "Project".to_string());
-                        format!("Recent Files in {}", project_name)
-                      } else {
-                        "Recent Files".to_string()
-                      };
-                      ui.add(
-                        egui::Label::new(
-                          egui::RichText::new(title)
-                            .size(16.0)
-                            .color(CherryBlossomTheme::text_primary()),
-                        )
-                        .selectable(false)
-                        .sense(egui::Sense::hover()),
-                      );
-                      ui.add_space(10.0);
-
-                      let mut clicked_file: Option<std::path::PathBuf> = None;
-                      for (path, name) in &recent_files_data {
-                        let file_path_str = path.display().to_string();
-                        let response = ui.add(
-                          egui::Button::new(
-                            egui::RichText::new(format!("📄  {}", file_path_str))
-                              .color(CherryBlossomTheme::text_primary())
-                              .size(12.0),
-                          )
-                          .fill(CherryBlossomTheme::bg_mid())
-                          .stroke(recent_button_stroke)
-                          .min_size(egui::vec2(right_width - 50.0, 30.0)),
-                        );
-
-                        if response.clicked() {
-                          clicked_file = Some(path.clone());
-                        }
-                        response.on_hover_text(name.clone());
-                      }
-
-                      if let Some(path) = clicked_file {
-                        if let Ok(content) = std::fs::read_to_string(&path) {
-                          if !self
-                            .settings
-                            .request_file_open_with_confirmation(path.clone(), content.clone())
-                          {
-                            return;
-                          }
-                          self.tabs.open_file(path.clone(), content.clone());
-                          self.add_recent_file(path);
-                        }
-                      }
-
-                      if has_recent_projects {
-                        ui.add_space(20.0);
-                        ui.separator();
-                        ui.add_space(10.0);
-                      }
+            if self.settings.edit_as_json_clicked {
+                self.settings.edit_as_json_clicked = false;
+                if let Some(path) = settings::get_settings_file_path() {
+                    self.settings.apply_changes();
+                    if let Ok(content) = std::fs::read_to_string(&path) {
+                        self.tabs.open_file(path.clone(), content);
+                        self.add_recent_file(path);
                     }
+                }
+            }
 
-                    if has_recent_projects {
-                      ui.add(
-                        egui::Label::new(
-                          egui::RichText::new("Recent Projects")
-                            .size(16.0)
-                            .color(CherryBlossomTheme::text_primary()),
-                        )
-                        .selectable(false)
-                        .sense(egui::Sense::hover()),
-                      );
-                      ui.add_space(10.0);
-
-                      let mut clicked_project: Option<std::path::PathBuf> = None;
-                      for (path, name) in &recent_projects_data {
-                        let project_path_str = path.display().to_string();
-                        let response = ui.add(
-                          egui::Button::new(
-                            egui::RichText::new(format!("📁  {}", project_path_str))
-                              .color(CherryBlossomTheme::text_primary())
-                              .size(12.0),
-                          )
-                          .fill(CherryBlossomTheme::bg_mid())
-                          .stroke(recent_button_stroke)
-                          .min_size(egui::vec2(right_width - 50.0, 30.0)),
-                        );
-
-                        if response.clicked() {
-                          clicked_project = Some(path.clone());
-                        }
-                        response.on_hover_text(name.clone());
-                      }
-
-                      if let Some(project) = clicked_project {
-                        self.open_recent_project(&project);
-                      }
-                    }
-                  });
-              },
-            );
-          }
-        });
-      });
-  }
-
-  fn show_editor(&mut self, ctx: &egui::Context) {
-    self.settings.show_confirm_discard_dialog(ctx);
-
-    if self.tabs.is_empty() {
-      self.show_welcome_screen(ctx);
-      return;
-    }
-
-    let active_tab_type = self
-      .tabs
-      .active_tab()
-      .map(|t| t.tab_type)
-      .unwrap_or(TabType::File);
-
-    if active_tab_type == TabType::Settings {
-      egui::CentralPanel::default()
-        .frame(
-          egui::Frame::central_panel(&ctx.global_style()).fill(CherryBlossomTheme::bg_darkest()),
-        )
-        .show(ctx, |ui| {
-          ui.set_height(ui.available_height());
-          self.settings.show_content(ui);
-        });
-
-      if self.settings.apply_changes_clicked {
-        self.settings.apply_changes_clicked = false;
-        self.settings.apply_changes();
-      }
-
-      if self.settings.edit_as_json_clicked {
-        self.settings.edit_as_json_clicked = false;
-        if let Some(path) = settings::get_settings_file_path() {
-          self.settings.apply_changes();
-          if let Ok(content) = std::fs::read_to_string(&path) {
-            self.tabs.open_file(path.clone(), content);
-            self.add_recent_file(path);
-          }
+            return;
         }
-      }
 
-      return;
-    }
+        if active_tab_type == TabType::SearchResults {
+            egui::CentralPanel::default()
+                .frame(
+                    egui::Frame::central_panel(&ctx.global_style())
+                        .fill(CherryBlossomTheme::bg_darkest()),
+                )
+                .show(ctx, |ui| {
+                    let mut state: search::SearchState = ui.ctx().data_mut(|d| {
+                        d.get_temp(egui::Id::new("search_state"))
+                            .unwrap_or_default()
+                    });
+                    search::show_search_tab(ui, &mut state, self.settings.search_min_chars);
+                    ui.ctx().data_mut(|d| {
+                        d.insert_temp(egui::Id::new("search_state"), state);
+                    });
 
-    if active_tab_type == TabType::SearchResults {
-      egui::CentralPanel::default()
-        .frame(
-          egui::Frame::central_panel(&ctx.global_style()).fill(CherryBlossomTheme::bg_darkest()),
-        )
-        .show(ctx, |ui| {
-          let mut state: search::SearchState = ui.ctx().data_mut(|d| {
-            d.get_temp(egui::Id::new("search_state"))
-              .unwrap_or_default()
-          });
-          search::show_search_tab(ui, &mut state, self.settings.search_min_chars);
-          ui.ctx().data_mut(|d| {
-            d.insert_temp(egui::Id::new("search_state"), state);
-          });
+                    if let Some((file_path, line, _start_col, _end_col)) = ui.ctx().data_mut(|d| {
+                        d.get_temp::<(String, usize, usize, usize)>(egui::Id::new(
+                            "search_jump_request",
+                        ))
+                    }) {
+                        ui.ctx().data_mut(|d| {
+                            d.remove::<(String, usize, usize, usize)>(egui::Id::new(
+                                "search_jump_request",
+                            ));
+                        });
 
-          if let Some((file_path, line, _start_col, _end_col)) = ui.ctx().data_mut(|d| {
-            d.get_temp::<(String, usize, usize, usize)>(egui::Id::new("search_jump_request"))
-          }) {
-            ui.ctx().data_mut(|d| {
-              d.remove::<(String, usize, usize, usize)>(egui::Id::new("search_jump_request"));
-            });
+                        let path = std::path::PathBuf::from(&file_path);
+                        if !self.tabs.is_file_open(&path) {
+                            if let Ok(content) = std::fs::read_to_string(&path) {
+                                self.tabs.open_file(path.clone(), content);
+                                self.add_recent_file(path.clone());
+                            }
+                        } else {
+                            if let Some(index) = self.tabs.tabs.iter().position(|tab| {
+                                tab.tab_type == TabType::File && tab.path.as_ref() == Some(&path)
+                            }) {
+                                self.tabs.set_active(index);
+                            }
+                        }
 
-            let path = std::path::PathBuf::from(&file_path);
-            if !self.tabs.is_file_open(&path) {
-              if let Ok(content) = std::fs::read_to_string(&path) {
-                self.tabs.open_file(path.clone(), content);
-                self.add_recent_file(path.clone());
-              }
+                        ctx.data_mut(|d| {
+                            d.insert_temp(
+                                egui::Id::new("goto_line_request"),
+                                line.saturating_sub(1),
+                            );
+                        });
+                    }
+                });
+            return;
+        }
+
+        let (content, _line_count) = if let Some(editor) = self.tabs.current_editor() {
+            let content = editor.buffer.content().to_string();
+            let line_count = content.lines().count().max(1);
+            let line_count = if content.ends_with('\n') {
+                line_count + 1
             } else {
-              if let Some(index) = self
-                .tabs
-                .tabs
-                .iter()
-                .position(|tab| tab.tab_type == TabType::File && tab.path.as_ref() == Some(&path))
-              {
-                self.tabs.set_active(index);
-              }
-            }
+                line_count
+            };
+            (content, line_count)
+        } else {
+            (String::new(), 1)
+        };
 
+        let _show_line_numbers = self.settings.show_line_numbers;
+        let font_size = self.settings.font_size;
+        let _line_number_width = if _show_line_numbers { 50.0 } else { 0.0 };
+
+        // fuck my big chungus life, this doesnt work yet i need to figure it out
+        let goto_line = ctx.data_mut(|d| d.get_temp::<usize>(egui::Id::new("goto_line_request")));
+
+        let mut target_scroll_offset: Option<f32> = None;
+        if let Some(target_line) = goto_line {
             ctx.data_mut(|d| {
-              d.insert_temp(egui::Id::new("goto_line_request"), line.saturating_sub(1));
+                d.remove::<usize>(egui::Id::new("goto_line_request"));
             });
-          }
-        });
-      return;
-    }
 
-    let (content, _line_count) = if let Some(editor) = self.tabs.current_editor() {
-      let content = editor.buffer.content().to_string();
-      let line_count = content.lines().count().max(1);
-      let line_count = if content.ends_with('\n') {
-        line_count + 1
-      } else {
-        line_count
-      };
-      (content, line_count)
-    } else {
-      (String::new(), 1)
-    };
+            let line_height = font_size * 1.5;
+            target_scroll_offset = Some(target_line as f32 * line_height);
 
-    let _show_line_numbers = self.settings.show_line_numbers;
-    let font_size = self.settings.font_size;
-    let _line_number_width = if _show_line_numbers { 50.0 } else { 0.0 };
-
-    // fuck my big chungus life, this doesnt work yet i need to figure it out
-    let goto_line = ctx.data_mut(|d| d.get_temp::<usize>(egui::Id::new("goto_line_request")));
-
-    let mut target_scroll_offset: Option<f32> = None;
-    if let Some(target_line) = goto_line {
-      ctx.data_mut(|d| {
-        d.remove::<usize>(egui::Id::new("goto_line_request"));
-      });
-
-      let line_height = font_size * 1.5;
-      target_scroll_offset = Some(target_line as f32 * line_height);
-
-      let lines: Vec<&str> = content.lines().collect();
-      let target_line = target_line.min(lines.len().saturating_sub(1));
-      let mut cursor_pos = 0;
-      for (i, line) in lines.iter().enumerate() {
-        if i == target_line {
-          break;
-        }
-        cursor_pos += line.len() + 1;
-      }
-      if let Some(editor) = self.tabs.current_editor_mut() {
-        editor.cursor.move_to(cursor_pos);
-      }
-    }
-
-    // Resolve the open file's language -> highlighter BEFORE the panel closure
-    // so the layouter owns it (no borrow of `self` inside the closure). hikari
-    // picks the language from the path; an unknown extension falls back to
-    // plain text — never "everything is Rust".
-    let path_str = self
-      .tabs
-      .active_tab_path()
-      .map(|p| p.display().to_string())
-      .unwrap_or_default();
-    let highlighter = self.syntax.highlighter_for_path(&path_str);
-
-    egui::CentralPanel::default()
-      .frame(egui::Frame::central_panel(&ctx.global_style()).fill(CherryBlossomTheme::bg_darkest()))
-      .show(ctx, |ui| {
-        let mut text_changed = false;
-        let mut new_text = content.clone();
-
-        let editor_id = ui.id().with("code_editor");
-
-        // hikari-driven layouter: classify + color every byte through the
-        // TextEdit's own layout hook.
-        let mut layouter =
-          |ui: &egui::Ui, buf: &dyn egui::TextBuffer, _wrap_width: f32| {
-            let job = highlight::layout_job(buf.as_str(), highlighter.as_ref(), font_size);
-            ui.fonts_mut(|f| f.layout_job(job))
-          };
-
-        let mut scroll = egui::ScrollArea::both().id_salt(editor_id).auto_shrink([false, false]);
-        if let Some(scroll_offset) = target_scroll_offset {
-          scroll = scroll.vertical_scroll_offset(scroll_offset);
-        }
-
-        let response = scroll
-          .show(ui, |ui| {
-            ui.add(
-              egui::TextEdit::multiline(&mut new_text)
-                .id(editor_id)
-                .code_editor()
-                .desired_width(f32::INFINITY)
-                .layouter(&mut layouter),
-            )
-          })
-          .inner;
-
-        if response.has_focus() {
-          self.editor_had_focus = true;
-        }
-
-        if new_text != content {
-          text_changed = true;
-        }
-
-        if text_changed {
-          if let Some(editor) = self.tabs.current_editor_mut() {
-            editor.buffer = editor::Buffer::from_str(&new_text);
-          }
-          if let Some(tab) = self.tabs.active_tab_mut() {
-            tab.is_modified = true;
-          }
-        }
-      });
-  }
-
-  fn show_status_bar(&mut self, ctx: &egui::Context) {
-    if !self.settings.status_bar_visible {
-      return;
-    }
-
-    egui::Panel::bottom("status_bar")
-      .exact_size(26.0)
-      .frame(egui::Frame::NONE.fill(CherryBlossomTheme::bg_mid()))
-      .show(ctx, |ui| {
-        ui.horizontal(|ui| {
-          ui.set_width(ui.available_width());
-          ui.add_space(12.0);
-
-          ui.label(
-            egui::RichText::new(&self.status_message)
-              .size(12.0)
-              .color(CherryBlossomTheme::text_secondary()),
-          );
-
-          ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            ui.add_space(12.0);
-
-            if let Some(tab) = self.tabs.active_tab() {
-              ui.label(
-                egui::RichText::new(format!("{} Ln, Col {}", 1, 1))
-                  .size(12.0)
-                  .color(CherryBlossomTheme::text_muted()),
-              );
-
-              ui.add_space(16.0);
-
-              let indent_text = if self.settings.use_spaces {
-                format!("Spaces: {}", self.settings.tab_size)
-              } else {
-                "Tab Size".to_string()
-              };
-              ui.label(
-                egui::RichText::new(indent_text)
-                  .size(12.0)
-                  .color(CherryBlossomTheme::text_muted()),
-              );
-
-              ui.add_space(16.0);
-
-              ui.label(
-                egui::RichText::new("UTF-8")
-                  .size(12.0)
-                  .color(CherryBlossomTheme::text_muted()),
-              );
-
-              ui.add_space(16.0);
-
-              if tab.is_modified {
-                ui.label(
-                  egui::RichText::new("● Modified")
-                    .size(12.0)
-                    .color(CherryBlossomTheme::accent_hot()),
-                );
-              }
+            let lines: Vec<&str> = content.lines().collect();
+            let target_line = target_line.min(lines.len().saturating_sub(1));
+            let mut cursor_pos = 0;
+            for (i, line) in lines.iter().enumerate() {
+                if i == target_line {
+                    break;
+                }
+                cursor_pos += line.len() + 1;
             }
-          });
-        });
-      });
+            if let Some(editor) = self.tabs.current_editor_mut() {
+                editor.cursor.move_to(cursor_pos);
+            }
+        }
 
-    if self.settings.close_after_discard {
-      self.settings.close_after_discard = false;
-      self.tabs.close_active_tab();
+        // Resolve the open file's language -> highlighter BEFORE the panel closure
+        // so the layouter owns it (no borrow of `self` inside the closure). hikari
+        // picks the language from the path; an unknown extension falls back to
+        // plain text — never "everything is Rust".
+        let path_str = self
+            .tabs
+            .active_tab_path()
+            .map(|p| p.display().to_string())
+            .unwrap_or_default();
+        let highlighter = self.syntax.highlighter_for_path(&path_str);
+
+        egui::CentralPanel::default()
+            .frame(
+                egui::Frame::central_panel(&ctx.global_style())
+                    .fill(CherryBlossomTheme::bg_darkest()),
+            )
+            .show(ctx, |ui| {
+                let mut text_changed = false;
+                let mut new_text = content.clone();
+
+                let editor_id = ui.id().with("code_editor");
+
+                // hikari-driven layouter: classify + color every byte through the
+                // TextEdit's own layout hook.
+                let mut layouter = |ui: &egui::Ui, buf: &dyn egui::TextBuffer, _wrap_width: f32| {
+                    let job = highlight::layout_job(buf.as_str(), highlighter.as_ref(), font_size);
+                    ui.fonts_mut(|f| f.layout_job(job))
+                };
+
+                let mut scroll = egui::ScrollArea::both()
+                    .id_salt(editor_id)
+                    .auto_shrink([false, false]);
+                if let Some(scroll_offset) = target_scroll_offset {
+                    scroll = scroll.vertical_scroll_offset(scroll_offset);
+                }
+
+                let response = scroll
+                    .show(ui, |ui| {
+                        ui.add(
+                            egui::TextEdit::multiline(&mut new_text)
+                                .id(editor_id)
+                                .code_editor()
+                                .desired_width(f32::INFINITY)
+                                .layouter(&mut layouter),
+                        )
+                    })
+                    .inner;
+
+                if response.has_focus() {
+                    self.editor_had_focus = true;
+                }
+
+                if new_text != content {
+                    text_changed = true;
+                }
+
+                if text_changed {
+                    if let Some(editor) = self.tabs.current_editor_mut() {
+                        editor.buffer = editor::Buffer::from_str(&new_text);
+                    }
+                    if let Some(tab) = self.tabs.active_tab_mut() {
+                        tab.is_modified = true;
+                    }
+                }
+            });
     }
 
-    if !self.settings.confirm_discard_open {
-      if let Some((path, content)) = self.settings.take_pending_file_open() {
-        self.tabs.open_file(path.clone(), content);
-        self.add_recent_file(path);
-      }
-      if self.settings.take_pending_new_tab() {
-        self.tabs.new_tab();
-      }
+    fn show_status_bar(&mut self, ctx: &egui::Context) {
+        if !self.settings.status_bar_visible {
+            return;
+        }
+
+        egui::Panel::bottom("status_bar")
+            .exact_size(26.0)
+            .frame(egui::Frame::NONE.fill(CherryBlossomTheme::bg_mid()))
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.set_width(ui.available_width());
+                    ui.add_space(12.0);
+
+                    ui.label(
+                        egui::RichText::new(&self.status_message)
+                            .size(12.0)
+                            .color(CherryBlossomTheme::text_secondary()),
+                    );
+
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.add_space(12.0);
+
+                        if let Some(tab) = self.tabs.active_tab() {
+                            ui.label(
+                                egui::RichText::new(format!("{} Ln, Col {}", 1, 1))
+                                    .size(12.0)
+                                    .color(CherryBlossomTheme::text_muted()),
+                            );
+
+                            ui.add_space(16.0);
+
+                            let indent_text = if self.settings.use_spaces {
+                                format!("Spaces: {}", self.settings.tab_size)
+                            } else {
+                                "Tab Size".to_string()
+                            };
+                            ui.label(
+                                egui::RichText::new(indent_text)
+                                    .size(12.0)
+                                    .color(CherryBlossomTheme::text_muted()),
+                            );
+
+                            ui.add_space(16.0);
+
+                            ui.label(
+                                egui::RichText::new("UTF-8")
+                                    .size(12.0)
+                                    .color(CherryBlossomTheme::text_muted()),
+                            );
+
+                            ui.add_space(16.0);
+
+                            if tab.is_modified {
+                                ui.label(
+                                    egui::RichText::new("● Modified")
+                                        .size(12.0)
+                                        .color(CherryBlossomTheme::accent_hot()),
+                                );
+                            }
+                        }
+                    });
+                });
+            });
+
+        if self.settings.close_after_discard {
+            self.settings.close_after_discard = false;
+            self.tabs.close_active_tab();
+        }
+
+        if !self.settings.confirm_discard_open {
+            if let Some((path, content)) = self.settings.take_pending_file_open() {
+                self.tabs.open_file(path.clone(), content);
+                self.add_recent_file(path);
+            }
+            if self.settings.take_pending_new_tab() {
+                self.tabs.new_tab();
+            }
+        }
     }
-  }
 }
 
 impl eframe::App for AsterIDE {
-  fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-    ui.set_height(ui.available_height());
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        ui.set_height(ui.available_height());
 
-    let ctx = ui.ctx();
-    theme::apply_theme_from_settings(
-      ctx,
-      self.settings.theme_variant,
-      self.settings.corner_roundness,
-    );
+        let ctx = ui.ctx();
+        theme::apply_theme_from_settings(
+            ctx,
+            self.settings.theme_variant,
+            self.settings.corner_roundness,
+        );
 
-    if let Some(path) = self.initial_path.take() {
-      if path.is_file() {
-        if let Ok(content) = std::fs::read_to_string(&path) {
-          if self
-            .settings
-            .request_file_open_with_confirmation(path.clone(), content.clone())
-          {
-            self.tabs.open_file(path.clone(), content);
-            self.add_recent_file(path);
-          }
-        }
-      } else if path.is_dir() {
-        self.opened_folder = Some(path.clone());
-        self.expanded_folders.insert(path.clone());
-        self.add_recent_project(path);
-      }
-    }
-
-    if self.editor_had_focus {
-      let tab_pressed = ctx.input(|i| {
-        i.key_pressed(egui::Key::Tab)
-          && !i.modifiers.shift
-          && !i.modifiers.alt
-          && !i.modifiers.ctrl
-          && !i.modifiers.command
-      });
-      if tab_pressed {
-        if let Some(id) = self.editor_id {
-          ctx.memory_mut(|mem| mem.request_focus(id));
-        }
-      }
-    }
-
-    self.editor_had_focus = false;
-
-    ctx.input(|i| {
-      if i.modifiers.command && i.key_pressed(egui::Key::P) {
-        self.command_palette.toggle();
-      }
-      if i.modifiers.command && i.key_pressed(egui::Key::Comma) {
-        self.tabs.open_settings_tab();
-      }
-      if i.modifiers.command && i.modifiers.shift && i.key_pressed(egui::Key::F) {
-        self.tabs.open_search_tab();
-      }
-      if i.modifiers.command && i.key_pressed(egui::Key::S) {
-        self.save_current_file(ctx);
-      }
-      // I don't use Windows so I'll probably need to use a VM just to ensure this does work
-      if !cfg!(target_os = "macos") && i.modifiers.ctrl && i.key_pressed(egui::Key::S) {
-        self.save_current_file(ctx);
-      }
-      if i.modifiers.command && i.key_pressed(egui::Key::O) {
-        if i.modifiers.shift {
-          self.open_folder_dialog();
-        } else {
-          self.open_file(ctx);
-        }
-      }
-      if i.modifiers.command && i.key_pressed(egui::Key::T) {
-        if self.settings.request_new_tab_with_confirmation() {
-          self.tabs.new_tab();
-        }
-      }
-      if i.modifiers.command && i.key_pressed(egui::Key::W) {
-        let active_is_settings = self
-          .tabs
-          .active_tab()
-          .map(|t| t.tab_type == tabs::TabType::Settings)
-          .unwrap_or(false);
-
-        if active_is_settings && self.settings.has_unsaved_changes() {
-          self.settings.request_close_with_confirmation();
-        } else {
-          self.tabs.close_active_tab();
-        }
-      }
-      if i.modifiers.command && i.key_pressed(egui::Key::B) {
-        let old_visibility = self.settings.sidebar_visible;
-        self.settings.sidebar_visible = !self.settings.sidebar_visible;
-        if old_visibility != self.settings.sidebar_visible {}
-      }
-    });
-
-    let global_search_triggered = ctx.data_mut(|d| {
-      d.get_temp::<bool>(egui::Id::new("global_search_triggered"))
-        .unwrap_or(false)
-    });
-    if global_search_triggered {
-      ctx.data_mut(|d| {
-        if let Some(mut state) = d.get_temp::<search::SearchState>(egui::Id::new("search_state")) {
-          state.results.clear();
-
-          let mut searched_files: std::collections::HashSet<std::path::PathBuf> =
-            std::collections::HashSet::new();
-
-          for tab in self.tabs.iter() {
-            if tab.tab_type == TabType::File {
-              if let Some(ref path) = tab.path {
-                searched_files.insert(path.clone());
-                let content = tab.editor.buffer.content().to_string();
-                let lines: Vec<String> = content.lines().map(|s: &str| s.to_string()).collect();
-                state.find_in_file(&path.display().to_string(), &lines);
-              }
-            }
-          }
-
-          if let Some(ref folder) = self.opened_folder {
-            let mut walker = walkdir::WalkDir::new(folder).into_iter();
-
-            while let Some(entry) = walker.next() {
-              let Ok(entry) = entry else { continue };
-              let path = entry.path();
-
-              if entry.file_type().is_dir() {
-                if self.should_ignore_dir(path) {
-                  walker.skip_current_dir();
+        if let Some(path) = self.initial_path.take() {
+            if path.is_file() {
+                if let Ok(content) = std::fs::read_to_string(&path) {
+                    if self
+                        .settings
+                        .request_file_open_with_confirmation(path.clone(), content.clone())
+                    {
+                        self.tabs.open_file(path.clone(), content);
+                        self.add_recent_file(path);
+                    }
                 }
-                continue;
-              }
+            } else if path.is_dir() {
+                self.opened_folder = Some(path.clone());
+                self.expanded_folders.insert(path.clone());
+                self.add_recent_project(path);
+            }
+        }
 
-              if !entry.file_type().is_file() {
-                continue;
-              }
+        if self.editor_had_focus {
+            let tab_pressed = ctx.input(|i| {
+                i.key_pressed(egui::Key::Tab)
+                    && !i.modifiers.shift
+                    && !i.modifiers.alt
+                    && !i.modifiers.ctrl
+                    && !i.modifiers.command
+            });
+            if tab_pressed {
+                if let Some(id) = self.editor_id {
+                    ctx.memory_mut(|mem| mem.request_focus(id));
+                }
+            }
+        }
 
-              if searched_files.contains(path) {
-                continue;
-              }
+        self.editor_had_focus = false;
 
-              if let Some(ext) = path.extension() {
-                let ext = ext.to_string_lossy().to_lowercase();
-                if ![
-                  "txt", "rs", "md", "toml", "json", "js", "ts", "html", "css", "py", "c", "cpp",
-                  "h", "hpp", "go", "java", "rb", "sh", "yml", "yaml",
-                ]
-                .contains(&ext.as_str())
+        ctx.input(|i| {
+            if i.modifiers.command && i.key_pressed(egui::Key::P) {
+                self.command_palette.toggle();
+            }
+            if i.modifiers.command && i.key_pressed(egui::Key::Comma) {
+                self.tabs.open_settings_tab();
+            }
+            if i.modifiers.command && i.modifiers.shift && i.key_pressed(egui::Key::F) {
+                self.tabs.open_search_tab();
+            }
+            if i.modifiers.command && i.key_pressed(egui::Key::S) {
+                self.save_current_file(ctx);
+            }
+            // I don't use Windows so I'll probably need to use a VM just to ensure this does work
+            if !cfg!(target_os = "macos") && i.modifiers.ctrl && i.key_pressed(egui::Key::S) {
+                self.save_current_file(ctx);
+            }
+            if i.modifiers.command && i.key_pressed(egui::Key::O) {
+                if i.modifiers.shift {
+                    self.open_folder_dialog();
+                } else {
+                    self.open_file(ctx);
+                }
+            }
+            if i.modifiers.command && i.key_pressed(egui::Key::T) {
+                if self.settings.request_new_tab_with_confirmation() {
+                    self.tabs.new_tab();
+                }
+            }
+            if i.modifiers.command && i.key_pressed(egui::Key::W) {
+                let active_is_settings = self
+                    .tabs
+                    .active_tab()
+                    .map(|t| t.tab_type == tabs::TabType::Settings)
+                    .unwrap_or(false);
+
+                if active_is_settings && self.settings.has_unsaved_changes() {
+                    self.settings.request_close_with_confirmation();
+                } else {
+                    self.tabs.close_active_tab();
+                }
+            }
+            if i.modifiers.command && i.key_pressed(egui::Key::B) {
+                let old_visibility = self.settings.sidebar_visible;
+                self.settings.sidebar_visible = !self.settings.sidebar_visible;
+                if old_visibility != self.settings.sidebar_visible {}
+            }
+        });
+
+        let global_search_triggered = ctx.data_mut(|d| {
+            d.get_temp::<bool>(egui::Id::new("global_search_triggered"))
+                .unwrap_or(false)
+        });
+        if global_search_triggered {
+            ctx.data_mut(|d| {
+                if let Some(mut state) =
+                    d.get_temp::<search::SearchState>(egui::Id::new("search_state"))
                 {
-                  continue;
+                    state.results.clear();
+
+                    let mut searched_files: std::collections::HashSet<std::path::PathBuf> =
+                        std::collections::HashSet::new();
+
+                    for tab in self.tabs.iter() {
+                        if tab.tab_type == TabType::File {
+                            if let Some(ref path) = tab.path {
+                                searched_files.insert(path.clone());
+                                let content = tab.editor.buffer.content().to_string();
+                                let lines: Vec<String> =
+                                    content.lines().map(|s: &str| s.to_string()).collect();
+                                state.find_in_file(&path.display().to_string(), &lines);
+                            }
+                        }
+                    }
+
+                    if let Some(ref folder) = self.opened_folder {
+                        let mut walker = walkdir::WalkDir::new(folder).into_iter();
+
+                        while let Some(entry) = walker.next() {
+                            let Ok(entry) = entry else { continue };
+                            let path = entry.path();
+
+                            if entry.file_type().is_dir() {
+                                if self.should_ignore_dir(path) {
+                                    walker.skip_current_dir();
+                                }
+                                continue;
+                            }
+
+                            if !entry.file_type().is_file() {
+                                continue;
+                            }
+
+                            if searched_files.contains(path) {
+                                continue;
+                            }
+
+                            if let Some(ext) = path.extension() {
+                                let ext = ext.to_string_lossy().to_lowercase();
+                                if ![
+                                    "txt", "rs", "md", "toml", "json", "js", "ts", "html", "css",
+                                    "py", "c", "cpp", "h", "hpp", "go", "java", "rb", "sh", "yml",
+                                    "yaml",
+                                ]
+                                .contains(&ext.as_str())
+                                {
+                                    continue;
+                                }
+                            }
+
+                            if let Ok(content) = std::fs::read_to_string(path) {
+                                searched_files.insert(path.to_path_buf());
+                                let lines: Vec<String> =
+                                    content.lines().map(|s: &str| s.to_string()).collect();
+                                let rel_path = path
+                                    .strip_prefix(folder)
+                                    .map(|p| p.display().to_string())
+                                    .unwrap_or_else(|_| path.display().to_string());
+                                state.find_in_file(&rel_path, &lines);
+                            }
+                        }
+                    }
+
+                    d.insert_temp(egui::Id::new("search_state"), state);
                 }
-              }
-
-              if let Ok(content) = std::fs::read_to_string(path) {
-                searched_files.insert(path.to_path_buf());
-                let lines: Vec<String> = content.lines().map(|s: &str| s.to_string()).collect();
-                let rel_path = path
-                  .strip_prefix(folder)
-                  .map(|p| p.display().to_string())
-                  .unwrap_or_else(|_| path.display().to_string());
-                state.find_in_file(&rel_path, &lines);
-              }
-            }
-          }
-
-          d.insert_temp(egui::Id::new("search_state"), state);
+                d.insert_temp(egui::Id::new("global_search_triggered"), false);
+            });
         }
-        d.insert_temp(egui::Id::new("global_search_triggered"), false);
-      });
-    }
 
-    let global_replace_triggered = ctx.data_mut(|d| {
-      d.get_temp::<bool>(egui::Id::new("global_replace_all_triggered"))
-        .unwrap_or(false)
-    });
-    if global_replace_triggered {
-      if let Some(state) =
-        ctx.data_mut(|d| d.get_temp::<search::SearchState>(egui::Id::new("search_state")))
-      {
-        for tab in self.tabs.iter_mut() {
-          if tab.tab_type == TabType::File {
-            let content = tab.editor.buffer.content().to_string();
-            let new_content = state.replace_all_in_text(&content);
-            if new_content != content {
-              tab.editor.buffer = editor::Buffer::from_str(&new_content);
-              tab.is_modified = true;
+        let global_replace_triggered = ctx.data_mut(|d| {
+            d.get_temp::<bool>(egui::Id::new("global_replace_all_triggered"))
+                .unwrap_or(false)
+        });
+        if global_replace_triggered {
+            if let Some(state) =
+                ctx.data_mut(|d| d.get_temp::<search::SearchState>(egui::Id::new("search_state")))
+            {
+                for tab in self.tabs.iter_mut() {
+                    if tab.tab_type == TabType::File {
+                        let content = tab.editor.buffer.content().to_string();
+                        let new_content = state.replace_all_in_text(&content);
+                        if new_content != content {
+                            tab.editor.buffer = editor::Buffer::from_str(&new_content);
+                            tab.is_modified = true;
+                        }
+                    }
+                }
             }
-          }
+            ctx.data_mut(|d| {
+                d.insert_temp(egui::Id::new("global_replace_all_triggered"), false);
+            });
         }
-      }
-      ctx.data_mut(|d| {
-        d.insert_temp(egui::Id::new("global_replace_all_triggered"), false);
-      });
+
+        self.show_menu_bar(ctx);
+        self.show_activity_bar(ctx);
+        self.show_sidebar(ctx);
+        self.show_tab_bar(ctx);
+        self.show_status_bar(ctx);
+        self.show_editor(ctx);
+
+        self.command_palette.show(ctx);
     }
-
-    self.show_menu_bar(ctx);
-    self.show_activity_bar(ctx);
-    self.show_sidebar(ctx);
-    self.show_tab_bar(ctx);
-    self.show_status_bar(ctx);
-    self.show_editor(ctx);
-
-    self.command_palette.show(ctx);
-  }
 }
 
 fn main() -> eframe::Result<()> {
-  let raw_args: Vec<String> = std::env::args().skip(1).collect();
+    let raw_args: Vec<String> = std::env::args().skip(1).collect();
 
-  let mut initial_path: Option<std::path::PathBuf> = None;
-  let mut i = 0;
+    let mut initial_path: Option<std::path::PathBuf> = None;
+    let mut i = 0;
 
-  while i < raw_args.len() {
-    let arg = &raw_args[i];
-    if arg.starts_with('-') {
-      i += 2;
-      continue;
+    while i < raw_args.len() {
+        let arg = &raw_args[i];
+        if arg.starts_with('-') {
+            i += 2;
+            continue;
+        }
+        let path = std::path::PathBuf::from(arg);
+        if path.exists() {
+            initial_path = Some(path.canonicalize().unwrap_or(path));
+        } else {
+            eprintln!("Error: Path does not exist: {}", arg);
+            std::process::exit(1);
+        }
+        break;
     }
-    let path = std::path::PathBuf::from(arg);
-    if path.exists() {
-      initial_path = Some(path.canonicalize().unwrap_or(path));
-    } else {
-      eprintln!("Error: Path does not exist: {}", arg);
-      std::process::exit(1);
-    }
-    break;
-  }
 
-  let options = eframe::NativeOptions {
-    viewport: egui::ViewportBuilder::default()
-      .with_inner_size([1450.0, 800.0])
-      .with_min_inner_size([800.0, 600.0])
-      .with_icon(egui::IconData::default()),
-    ..Default::default()
-  };
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([1450.0, 800.0])
+            .with_min_inner_size([800.0, 600.0])
+            .with_icon(egui::IconData::default()),
+        ..Default::default()
+    };
 
-  eframe::run_native(
-    "AsterIDE",
-    options,
-    Box::new(move |_cc| Ok(Box::new(AsterIDE::new_with_path(initial_path.clone())))),
-  )
+    eframe::run_native(
+        "AsterIDE",
+        options,
+        Box::new(move |_cc| Ok(Box::new(AsterIDE::new_with_path(initial_path.clone())))),
+    )
 }

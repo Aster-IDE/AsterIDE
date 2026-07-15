@@ -14,12 +14,14 @@
   libxkbcommon,
 }:
 let
-  inherit (inputs)fenix crane;
+  inherit (inputs) fenix crane;
 
-  toolchain = with fenix.packages.${stdenv.system}; combine [
-    latest.toolchain
-  ];
-  
+  toolchain =
+    with fenix.packages.${stdenv.system};
+    combine [
+      latest.toolchain
+    ];
+
   craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
 
   buildDeps = [
@@ -45,13 +47,16 @@ let
 
   cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 in
-craneLib.buildPackage (commonArgs // {
-  inherit cargoArtifacts;
+craneLib.buildPackage (
+  commonArgs
+  // {
+    inherit cargoArtifacts;
 
-  meta = with lib; {
-    description = "A Simple Text Editor written in Rust.";
-    homepage = "https://github.com/playfairs/AsterIDE";
-    license = licenses.gpl3;
-    maintainers = [ "Invra <identificationsucks@gmail.com>" ];
-  };
-})
+    meta = with lib; {
+      description = "A Simple Text Editor written in Rust.";
+      homepage = "https://github.com/playfairs/AsterIDE";
+      license = licenses.gpl3;
+      maintainers = [ "Invra <identificationsucks@gmail.com>" ];
+    };
+  }
+)

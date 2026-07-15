@@ -3,6 +3,6 @@
 // I start implementing all the Source Control Management (scm) tools once everything else is done.
 
 pub fn init() {
-  // Placeholder so Cargo doesn't mind this file containing no logic
-  // Also so I can push this to github.
+    // Placeholder so Cargo doesn't mind this file containing no logic
+    // Also so I can push this to github.
 }

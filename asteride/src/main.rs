@@ -1,9 +1,17 @@
 mod app_icon;
-use elements::{bottom_area, sidebar};
+use elements::{
+    bottom_area,
+    sidebar,
+};
 use iced::{
-    Element, Subscription, Task,
+    Element,
+    Subscription,
+    Task,
     theme::Theme,
-    widget::{column, row},
+    widget::{
+        column,
+        row,
+    },
     window,
 };
 use lucide_icons::LUCIDE_FONT_BYTES;

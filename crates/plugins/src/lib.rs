@@ -8,7 +8,15 @@
 //! in hikari and arrive on the next version bump.
 
 pub use hikari_core::{
-    ByteSpan, Ecosystem, HighlightSpan, Highlighter, HlClass, Language, NordTheme, Rgb, Theme,
+    ByteSpan,
+    Ecosystem,
+    HighlightSpan,
+    Highlighter,
+    HlClass,
+    Language,
+    NordTheme,
+    Rgb,
+    Theme,
 };
 
 /// The `AsterIDE` language registry: the batteries-included hikari `Ecosystem`

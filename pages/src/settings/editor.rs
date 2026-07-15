@@ -1,4 +1,9 @@
-use iced::{Element, Subscription, Task, widget::text};
+use iced::{
+    Element,
+    Subscription,
+    Task,
+    widget::text,
+};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct Editor {}

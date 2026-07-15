@@ -1,7 +1,21 @@
-use std::sync::{Mutex, OnceLock};
+use std::sync::{
+    Mutex,
+    OnceLock,
+};
 
-use iced::widget::{Space, container, row, text};
-use iced::{Element, Length, Padding, Task, Theme};
+use iced::widget::{
+    Space,
+    container,
+    row,
+    text,
+};
+use iced::{
+    Element,
+    Length,
+    Padding,
+    Task,
+    Theme,
+};
 
 #[derive(Default)]
 struct ContextState {

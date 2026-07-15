@@ -1,7 +1,12 @@
 mod editor;
 mod general;
 mod sidebar;
-use iced::{Element, Subscription, Task, widget::row};
+use iced::{
+    Element,
+    Subscription,
+    Task,
+    widget::row,
+};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub enum SettingsPage {

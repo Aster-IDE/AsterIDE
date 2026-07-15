@@ -1,5 +1,18 @@
-use iced::widget::{Space, button, column, container, mouse_area, text};
-use iced::{Element, Font, Length, Task, Theme};
+use iced::widget::{
+    Space,
+    button,
+    column,
+    container,
+    mouse_area,
+    text,
+};
+use iced::{
+    Element,
+    Font,
+    Length,
+    Task,
+    Theme,
+};
 use lucide_icons::Icon;
 use pages::Page;
 

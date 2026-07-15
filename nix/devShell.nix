@@ -22,15 +22,17 @@
   glib,
   just,
   create-dmg,
-  inputs
+  inputs,
 }:
 let
-  inherit (inputs)fenix crane;
+  inherit (inputs) fenix crane;
 
-  toolchain = with fenix.packages.${stdenv.system}; combine [
-    latest.toolchain
-  ];
-  
+  toolchain =
+    with fenix.packages.${stdenv.system};
+    combine [
+      latest.toolchain
+    ];
+
   craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
 in
 craneLib.devShell rec {
