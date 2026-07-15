@@ -1,10 +1,30 @@
-use iced::{Element, Subscription, Task, widget::text};
+mod editor;
+mod general;
+mod sidebar;
+use iced::{Element, Subscription, Task, widget::row};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
-pub struct Settings {}
+pub enum SettingsPage {
+    #[default]
+    General,
+    Editor,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
+pub struct Settings {
+    sidebar: sidebar::Sidebar,
+    general: general::General,
+    editor: editor::Editor,
+    page: SettingsPage,
+}
 
 #[derive(Debug, Clone)]
-pub enum Message {}
+pub enum Message {
+    ChangePage(SettingsPage),
+    Sidebar(sidebar::Message),
+    General(general::Message),
+    Editor(editor::Message),
+}
 
 impl Settings {
     pub fn new() -> Self {
@@ -12,15 +32,41 @@ impl Settings {
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
-        Subscription::none()
+        Subscription::batch([
+            self.general.subscription().map(Message::General),
+            self.editor.subscription().map(Message::Editor),
+        ])
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            // _ => Task::none(),
+            Message::ChangePage(p) => {
+                self.page = p;
+                Task::none()
+            }
+            Message::Sidebar(msg) => {
+                let (task, event) = self.sidebar.update(msg);
+                if let sidebar::Event::OpenPage(id) = &event {
+                    self.page = id.clone();
+                }
+                if let sidebar::Event::SetContext(_t, _d) = &event {
+                    // todo!()
+                }
+                if let sidebar::Event::ClearContext = &event {
+                    // todo!()
+                }
+                task.map(Message::Sidebar)
+            }
+            Message::General(msg) => self.general.update(msg).map(Message::General),
+            Message::Editor(msg) => self.editor.update(msg).map(Message::Editor),
         }
     }
     pub fn view(&self) -> Element<'_, Message> {
-        text("Settings page").into()
+        let page: Element<'_, Message> = match self.page {
+            SettingsPage::General => self.general.view().map(Message::General),
+            SettingsPage::Editor => self.editor.view().map(Message::Editor),
+        };
+
+        row![self.sidebar.view().map(Message::Sidebar), page].into()
     }
 }
