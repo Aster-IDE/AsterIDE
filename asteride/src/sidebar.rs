@@ -13,27 +13,17 @@ pub struct Sidebar {}
 pub enum Message {
     ContextButtonEnter(String, String),
     ContextButtonExit,
-    ItemSelected(Page),
-}
-
-pub enum Event {
-    None,
-    OpenPage(Page),
+    SwitchPage(Page),
 }
 
 impl Sidebar {
-    pub fn update(&mut self, message: Message) -> (Task<Message>, Event) {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::ContextButtonEnter(t, d) => {
-                bottom_area::announce_ctx(t, d);
-                (Task::none(), Event::None)
-            }
-            Message::ContextButtonExit => {
-                bottom_area::clear_ctx();
-                (Task::none(), Event::None)
-            }
-            Message::ItemSelected(page) => (Task::none(), Event::OpenPage(page)),
+            Message::ContextButtonEnter(t, d) => bottom_area::announce_ctx(t, d),
+            Message::ContextButtonExit => bottom_area::clear_ctx(),
+            Message::SwitchPage(p) => pages::set_page(p),
         }
+        Task::none()
     }
 
     pub fn view(&self) -> Element<'_, Message> {
@@ -94,7 +84,7 @@ fn nav_button<'a>(
 ) -> Element<'a, Message> {
     mouse_area(
         button(icon.into())
-            .on_press(Message::ItemSelected(page))
+            .on_press(Message::SwitchPage(page))
             .width(Length::Fill)
             .height(40)
             .style(|theme: &Theme, state: button::Status| {
