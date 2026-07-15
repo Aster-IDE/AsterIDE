@@ -856,7 +856,6 @@ version = "2.0.0"
 dependencies = [
  "iced",
  "lucide-icons",
- "pages",
 ]
 
 [[package]]
@@ -2592,6 +2591,7 @@ dependencies = [
 name = "pages"
 version = "2.0.0"
 dependencies = [
+ "elements",
  "iced",
  "lucide-icons",
  "rfd",

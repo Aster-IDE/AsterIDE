@@ -8,5 +8,4 @@ version.workspace = true
 
 [dependencies]
 iced.workspace = true
-pages.workspace = true
 lucide-icons.workspace = true

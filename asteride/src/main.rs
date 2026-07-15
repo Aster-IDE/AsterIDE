@@ -1,23 +1,16 @@
 mod app_icon;
-use elements::{
-    bottom_area,
-    sidebar,
-};
+mod sidebar;
+use elements::bottom_area;
 use iced::{
-    Element,
-    Subscription,
-    Task,
+    Element, Subscription, Task,
     theme::Theme,
-    widget::{
-        column,
-        row,
-    },
+    widget::{column, row},
     window,
 };
 use lucide_icons::LUCIDE_FONT_BYTES;
 
 struct AsterIDE {
-    sidebar: elements::sidebar::Sidebar,
+    sidebar: sidebar::Sidebar,
     page: pages::Page,
     home: pages::home::Home,
     search: pages::search::Search,
@@ -52,18 +45,11 @@ impl AsterIDE {
         match message {
             Message::Sidebar(msg) => {
                 let (task, event) = self.sidebar.update(msg);
-                if let sidebar::Event::OpenPage(id) = &event {
-                    self.page = id.clone();
-                }
-                if let sidebar::Event::SetContext(t, d) = &event {
-                    elements::bottom_area::announce_ctx(t, d);
-                }
-                if let sidebar::Event::ClearContext = &event {
-                    elements::bottom_area::clear_ctx();
+                if let sidebar::Event::OpenPage(id) = event {
+                    self.page = id;
                 }
                 task.map(Message::Sidebar)
             }
-            // Message::Sidebar(msg) => self.sidebar.update(msg).map(Message::Sidebar),
             Message::BottomArea(msg) => self.bottom_area.update(msg).map(Message::BottomArea),
             Message::Home(msg) => self.home.update(msg).map(Message::Home),
             Message::Search(msg) => self.search.update(msg).map(Message::Search),

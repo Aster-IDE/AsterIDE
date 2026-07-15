@@ -1,18 +1,6 @@
-use iced::widget::{
-    Space,
-    button,
-    column,
-    container,
-    mouse_area,
-    text,
-};
-use iced::{
-    Element,
-    Font,
-    Length,
-    Task,
-    Theme,
-};
+use elements::bottom_area;
+use iced::widget::{Space, button, column, container, mouse_area, text};
+use iced::{Element, Font, Length, Task, Theme};
 use lucide_icons::Icon;
 use pages::Page;
 
@@ -23,24 +11,28 @@ pub struct Sidebar {}
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    ContextButtonEnter(String, String),
+    ContextButtonExit,
     ItemSelected(Page),
-    SetContext(String, String),
-    ClearContext,
 }
 
 pub enum Event {
     None,
     OpenPage(Page),
-    SetContext(String, String),
-    ClearContext,
 }
 
 impl Sidebar {
     pub fn update(&mut self, message: Message) -> (Task<Message>, Event) {
         match message {
+            Message::ContextButtonEnter(t, d) => {
+                bottom_area::announce_ctx(t, d);
+                (Task::none(), Event::None)
+            }
+            Message::ContextButtonExit => {
+                bottom_area::clear_ctx();
+                (Task::none(), Event::None)
+            }
             Message::ItemSelected(page) => (Task::none(), Event::OpenPage(page)),
-            Message::SetContext(t, d) => (Task::none(), Event::SetContext(t, d)),
-            Message::ClearContext => (Task::none(), Event::ClearContext),
         }
     }
 
@@ -124,8 +116,11 @@ fn nav_button<'a>(
                 }
             }),
     )
-    .on_enter(Message::SetContext(title.into(), description.into()))
-    .on_exit(Message::ClearContext)
+    .on_enter(Message::ContextButtonEnter(
+        title.into(),
+        description.into(),
+    ))
+    .on_exit(Message::ContextButtonExit)
     .into()
 }
 

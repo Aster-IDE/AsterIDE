@@ -1,19 +1,7 @@
 use crate::settings::SettingsPage;
-use iced::widget::{
-    button,
-    column,
-    container,
-    mouse_area,
-    row,
-    text,
-};
-use iced::{
-    Element,
-    Font,
-    Length,
-    Task,
-    Theme,
-};
+use elements::bottom_area;
+use iced::widget::{button, column, container, mouse_area, row, text};
+use iced::{Element, Font, Length, Task, Theme};
 use lucide_icons::Icon;
 
 const LUCIDE_FONT: Font = Font::with_name("lucide");
@@ -24,22 +12,28 @@ pub struct Sidebar {}
 #[derive(Debug, Clone)]
 pub enum Message {
     ItemSelected(SettingsPage),
-    SetContext(String, String),
-    ClearContext,
+    ContextButtonEnter(String, String),
+    ContextButtonExit,
 }
 
 pub enum Event {
+    None,
     OpenPage(SettingsPage),
-    SetContext(String, String),
-    ClearContext,
 }
 
 impl Sidebar {
     pub fn update(&mut self, message: Message) -> (Task<Message>, Event) {
         match message {
+            Message::ContextButtonEnter(t, d) => {
+                bottom_area::announce_ctx(t, d);
+                (Task::none(), Event::None)
+            }
+            Message::ContextButtonExit => {
+                bottom_area::clear_ctx();
+                (Task::none(), Event::None)
+            }
+
             Message::ItemSelected(page) => (Task::none(), Event::OpenPage(page)),
-            Message::SetContext(t, d) => (Task::none(), Event::SetContext(t, d)),
-            Message::ClearContext => (Task::none(), Event::ClearContext),
         }
     }
 
@@ -106,8 +100,11 @@ fn nav_button<'a>(
                 }
             }),
     )
-    .on_enter(Message::SetContext(title.into(), description.into()))
-    .on_exit(Message::ClearContext)
+    .on_enter(Message::ContextButtonEnter(
+        title.into(),
+        description.into(),
+    ))
+    .on_exit(Message::ContextButtonExit)
     .into()
 }
 
