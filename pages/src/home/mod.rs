@@ -72,7 +72,7 @@ impl Home {
                                 color: Some(palette.primary.base.color),
                             }
                         }),
-                    text("A simple text editor written in Rust")
+                    text("A Simple Text Editor written in Rust")
                         .size(18)
                         .width(Length::Fill)
                         .center()
