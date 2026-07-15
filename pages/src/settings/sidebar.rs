@@ -1,4 +1,4 @@
-use crate::settings::SettingsPage;
+use crate::settings::pages::{Page, set_page};
 use elements::bottom_area;
 use iced::widget::{button, column, container, mouse_area, row, text};
 use iced::{Element, Font, Length, Task, Theme};
@@ -11,30 +11,24 @@ pub struct Sidebar {}
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    ItemSelected(SettingsPage),
     ContextButtonEnter(String, String),
     ContextButtonExit,
-}
-
-pub enum Event {
-    None,
-    OpenPage(SettingsPage),
+    SwitchPage(Page),
 }
 
 impl Sidebar {
-    pub fn update(&mut self, message: Message) -> (Task<Message>, Event) {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ContextButtonEnter(t, d) => {
                 bottom_area::announce_ctx(t, d);
-                (Task::none(), Event::None)
             }
             Message::ContextButtonExit => {
                 bottom_area::clear_ctx();
-                (Task::none(), Event::None)
             }
 
-            Message::ItemSelected(page) => (Task::none(), Event::OpenPage(page)),
+            Message::SwitchPage(p) => set_page(p),
         }
+        Task::none()
     }
 
     pub fn view(&self) -> Element<'_, Message> {
@@ -44,13 +38,13 @@ impl Sidebar {
                     icon_text(Icon::AlignJustify),
                     "General",
                     "Settings for most of generic things",
-                    SettingsPage::General
+                    Page::General
                 ),
                 nav_button(
                     icon_text(Icon::Pencil),
                     "Editor",
                     "Settings for text editor field",
-                    SettingsPage::Editor
+                    Page::Editor
                 ),
             ]
             .spacing(10)
@@ -74,11 +68,11 @@ fn nav_button<'a>(
     icon: impl Into<Element<'static, Message>>,
     title: &'a str,
     description: &'a str,
-    page: SettingsPage,
+    page: Page,
 ) -> Element<'a, Message> {
     mouse_area(
         button(row![icon.into(), text(title).height(Length::Fill).center()].spacing(10))
-            .on_press(Message::ItemSelected(page))
+            .on_press(Message::SwitchPage(page))
             .width(Length::Fill)
             .height(28)
             .style(|theme: &Theme, state: button::Status| {
