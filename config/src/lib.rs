@@ -1,9 +1,13 @@
 pub mod spec;
 mod theme;
-use std::{env, path::PathBuf, sync::OnceLock};
+use std::{
+    env,
+    path::PathBuf,
+    sync::{Arc, RwLock},
+};
 
 /// Configuration ring, holds all configuration that is in a config file.
-static INSTANCE: OnceLock<spec::Config> = OnceLock::new();
+static INSTANCE: RwLock<Option<Arc<spec::Config>>> = RwLock::new(None);
 
 fn config_home() -> PathBuf {
     if cfg!(target_family = "unix") {
@@ -61,13 +65,17 @@ pub fn init_ring(
     };
 
     let config: spec::Config = inner_config.into();
-    tracing::debug!("Config contents: {config:#?}");
 
-    INSTANCE.set(config).unwrap();
+    let mut instance_writer = INSTANCE.write().unwrap();
+    *instance_writer = Some(Arc::new(config));
+    tracing::debug!("Config ring filled with: {instance_writer:#?}");
 }
 
-pub fn get() -> &'static spec::Config {
+pub fn get() -> std::sync::Arc<spec::Config> {
     INSTANCE
-        .get()
+        .read()
+        .unwrap()
+        .as_ref()
         .expect("init_ring wasn't called before access")
+        .clone()
 }
