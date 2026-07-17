@@ -1,3 +1,4 @@
+use iced::{Color, theme::Palette};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -24,7 +25,57 @@ pub enum ThemeSetting {
     Nightfly,
     Oxocarbon,
     Ferra,
+    CherryBlossomLight,
+    CherryBlossomDark,
+    RosePine,
+    RosePineDawn,
+    RosePineMoon,
 }
+
+const CHERRY_BLOSSOM_LIGHT: Palette = Palette {
+    background: Color::from_rgba8(245, 220, 230, 1.0),
+    text: Color::from_rgba8(80, 40, 60, 1.0),
+    primary: Color::from_rgba8(220, 80, 140, 1.0),
+    success: Color::from_rgba8(0, 255, 0, 1.0),
+    warning: Color::from_rgba8(255, 255, 0, 1.0),
+    danger: Color::from_rgba8(255, 0, 0, 1.0),
+};
+
+const CHERRY_BLOSSOM_DARK: Palette = Palette {
+    background: Color::from_rgba8(35, 20, 28, 1.0),
+    text: Color::from_rgba8(235, 235, 245, 1.0),
+    primary: Color::from_rgba8(235, 130, 180, 1.0),
+    success: Color::from_rgba8(0, 255, 0, 1.0),
+    warning: Color::from_rgba8(255, 255, 0, 1.0),
+    danger: Color::from_rgba8(255, 0, 0, 1.0),
+};
+
+const ROSE_PINE: Palette = Palette {
+    background: Color::from_rgba8(25, 23, 36, 1.0),
+    text: Color::from_rgba8(224, 222, 244, 1.0),
+    primary: Color::from_rgba8(196, 167, 231, 1.0),
+    success: Color::from_rgba8(49, 116, 143, 1.0),
+    warning: Color::from_rgba8(246, 193, 119, 1.0),
+    danger: Color::from_rgba8(235, 111, 146, 1.0),
+};
+
+const ROSE_PINE_MOON: Palette = Palette {
+    background: Color::from_rgba8(35, 33, 54, 1.0),
+    text: Color::from_rgba8(224, 222, 244, 1.0),
+    primary: Color::from_rgba8(196, 167, 231, 1.0),
+    success: Color::from_rgba8(62, 143, 176, 1.0),
+    warning: Color::from_rgba8(246, 193, 119, 1.0),
+    danger: Color::from_rgba8(235, 111, 146, 1.0),
+};
+
+const ROSE_PINE_DAWN: Palette = Palette {
+    background: Color::from_rgba8(250, 244, 237, 1.0),
+    text: Color::from_rgba8(70, 66, 79, 1.0),
+    primary: Color::from_rgba8(144, 122, 169, 1.0),
+    success: Color::from_rgba8(40, 105, 131, 1.0),
+    warning: Color::from_rgba8(234, 157, 52, 1.0),
+    danger: Color::from_rgba8(180, 99, 122, 1.0),
+};
 
 impl From<ThemeSetting> for iced::Theme {
     fn from(setting: ThemeSetting) -> Self {
@@ -51,12 +102,25 @@ impl From<ThemeSetting> for iced::Theme {
             ThemeSetting::Nightfly => iced::Theme::Nightfly,
             ThemeSetting::Oxocarbon => iced::Theme::Oxocarbon,
             ThemeSetting::Ferra => iced::Theme::Ferra,
+            ThemeSetting::CherryBlossomLight => {
+                iced::Theme::custom("Cherry Blossom Light".to_string(), CHERRY_BLOSSOM_LIGHT)
+            }
+            ThemeSetting::CherryBlossomDark => {
+                iced::Theme::custom("Cherry Blossom Dark".to_string(), CHERRY_BLOSSOM_DARK)
+            }
+            ThemeSetting::RosePine => iced::Theme::custom("Rose Pine".to_string(), ROSE_PINE),
+            ThemeSetting::RosePineMoon => {
+                iced::Theme::custom("Rose Pine Moon".to_string(), ROSE_PINE_MOON)
+            }
+            ThemeSetting::RosePineDawn => {
+                iced::Theme::custom("Rose Pine Dawn".to_string(), ROSE_PINE_DAWN)
+            }
         }
     }
 }
 
 impl TryFrom<&iced::Theme> for ThemeSetting {
-    type Error = ();
+    type Error = String;
 
     fn try_from(theme: &iced::Theme) -> Result<Self, Self::Error> {
         match theme {
@@ -82,7 +146,14 @@ impl TryFrom<&iced::Theme> for ThemeSetting {
             iced::Theme::Nightfly => Ok(ThemeSetting::Nightfly),
             iced::Theme::Oxocarbon => Ok(ThemeSetting::Oxocarbon),
             iced::Theme::Ferra => Ok(ThemeSetting::Ferra),
-            iced::Theme::Custom(_) => Err(()),
+            iced::Theme::Custom(_) => match theme.to_string().as_str() {
+                "Cherry Blossom Light" => Ok(ThemeSetting::CherryBlossomLight),
+                "Cherry Blossom Dark" => Ok(ThemeSetting::CherryBlossomDark),
+                "Rose Pine" => Ok(ThemeSetting::RosePine),
+                "Rose Pine Moon" => Ok(ThemeSetting::RosePineMoon),
+                "Rose Pine Dawn" => Ok(ThemeSetting::RosePineDawn),
+                _ => Err(format!("Unknown custom theme name: {}", theme.to_string())),
+            },
         }
     }
 }

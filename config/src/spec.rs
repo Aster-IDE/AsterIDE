@@ -10,7 +10,7 @@ impl Config {
     pub fn new() -> Self {
         Self {
             appearance: Appearance {
-                theme: iced::Theme::GruvboxLight,
+                theme: crate::theme::ThemeSetting::CherryBlossomDark.into(),
                 scale: 1.0,
             },
         }
