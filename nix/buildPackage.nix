@@ -26,7 +26,9 @@ let
   craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
 
   buildDeps = [
+    llvmPackages_22.clang
     pkg-config
+  ] ++ lib.optionals stdenv.isLinux [
     libglvnd
     freetype
     fontconfig
@@ -35,7 +37,6 @@ let
     libxcb-wm
     libxcursor
     libxkbcommon
-    llvmPackages_22.clang
   ];
 
   commonArgs = {
