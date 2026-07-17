@@ -112,8 +112,6 @@ pub fn main() -> iced::Result {
     config::init_ring(args.config_path);
     let config = config::get();
 
-    tracing::debug!("Config contents: {config:?}");
-
     let window_settings = window::Settings {
         // TODO: Create own titlebar later
         decorations: true,

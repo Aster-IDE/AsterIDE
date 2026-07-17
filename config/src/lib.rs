@@ -21,11 +21,14 @@ fn config_home() -> PathBuf {
 }
 
 fn resolve_config_path(override_path: Option<PathBuf>) -> PathBuf {
-    match override_path {
+    let result = match override_path {
         Some(path) if path.is_dir() => path.join("config.toml"),
         Some(path) => path,
         None => config_home().join("config.toml"),
-    }
+    };
+
+    tracing::debug!("Rsolved config path: {result:?}");
+    result
 }
 
 /// Goes around and initializes vital stuff for config to
@@ -34,6 +37,10 @@ pub fn init_ring(
     // used to override a path, e.g -c / --config
     override_default_path: Option<PathBuf>,
 ) {
+    if let Some(path) = &override_default_path {
+        tracing::info!("Using {path:?}");
+    }
+
     let config_path = resolve_config_path(override_default_path);
 
     let inner_config = if config_path.is_file() {
@@ -54,6 +61,7 @@ pub fn init_ring(
     };
 
     let config: spec::Config = inner_config.into();
+    tracing::debug!("Config contents: {config:#?}");
 
     INSTANCE.set(config).unwrap();
 }
