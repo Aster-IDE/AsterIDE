@@ -10,11 +10,15 @@
     crane.url = "github:ipetkov/crane";
   };
   outputs =
-    { nixpkgs, ... }@inputs:
+    { nixpkgs, self, ... }@inputs:
     let
       forAllSystems = nixpkgs.lib.genAttrs nixpkgs.lib.systems.flakeExposed;
     in
     {
+      overlays.default = final: prev: {
+        asteride = final.callPackage ./nix/buildPackage.nix { inherit inputs; };
+      };
+
       devShells = forAllSystems (
         system:
         let
@@ -29,10 +33,10 @@
       packages = forAllSystems (
         system:
         let
-          pkgs = import nixpkgs { inherit system; };
+          pkgs = import nixpkgs { inherit system; overlays = [ self.overlays.default ]; };
         in
         rec {
-          asteride = pkgs.callPackage ./nix/buildPackage.nix { inherit inputs; };
+          asteride = pkgs.asteride;
           default = asteride;
         }
       );
@@ -44,5 +48,12 @@
         in
         import ./nix/formatter.nix { inherit pkgs inputs; }
       );
+
+      homeModules.asteride =
+        { config, lib, pkgs, ... }:
+        import ./nix/homeModules.nix {
+          inherit config lib pkgs;
+          asteride-pkg = pkgs.asteride;
+        };
     };
 }
