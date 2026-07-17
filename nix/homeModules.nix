@@ -11,12 +11,12 @@ in
 {
   options.programs.asteride = {
     enable = lib.mkEnableOption "asteride";
-  
+
     package = lib.mkOption {
       type = lib.types.package;
       default = asteride-pkg;
       description = "The asteride package to install.";
-    };   
+    };
 
     settings = lib.mkOption {
       inherit (tomlFormat) type;

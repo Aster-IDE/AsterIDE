@@ -33,7 +33,10 @@
       packages = forAllSystems (
         system:
         let
-          pkgs = import nixpkgs { inherit system; overlays = [ self.overlays.default ]; };
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ self.overlays.default ];
+          };
         in
         rec {
           asteride = pkgs.asteride;
@@ -50,10 +53,15 @@
       );
 
       homeModules.asteride =
-        { config, lib, pkgs, ... }:
+        {
+          config,
+          lib,
+          pkgs,
+          ...
+        }:
         import ./nix/homeModules.nix {
           inherit config lib pkgs;
-          asteride-pkg = pkgs.asteride;
+          asteride-pkg = self.packages.${pkgs.system}.asteride;
         };
     };
 }
