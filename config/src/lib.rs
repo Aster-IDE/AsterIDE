@@ -1,6 +1,10 @@
 pub mod spec;
 mod theme;
-use std::{env, path::PathBuf, sync::OnceLock};
+use std::{
+    env,
+    path::PathBuf,
+    sync::OnceLock,
+};
 
 /// Configuration ring, holds all configuration that is in a config file.
 static INSTANCE: OnceLock<spec::Config> = OnceLock::new();

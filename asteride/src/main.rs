@@ -4,9 +4,14 @@ use std::path::PathBuf;
 
 use elements::bottom_area;
 use iced::{
-    Element, Subscription, Task,
+    Element,
+    Subscription,
+    Task,
     theme::Theme,
-    widget::{column, row},
+    widget::{
+        column,
+        row,
+    },
     window,
 };
 
