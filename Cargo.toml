@@ -1,5 +1,5 @@
 [workspace]
-members = ["xtask", "asteride", "pages", "elements"]
+members = ["xtask", "asteride", "pages", "elements", "config"]
 
 default-members = ["asteride"]
 resolver = "3"
@@ -14,18 +14,31 @@ authors = [
 ]
 
 [workspace.dependencies]
+pico-args = "0.5.0"
+tracing = "0.1.44"
 image = "0.25.10"
+toml = "1.1.2"
 rfd = "0.17.2"
+
+[workspace.dependencies.elements]
+path = "./elements"
+
+[workspace.dependencies.config]
+path = "./config"
+
+[workspace.dependencies.pages]
+path = "./pages"
+
+[workspace.dependencies.serde]
+version = "1.0.228"
+features = ["derive"]
 
 [workspace.dependencies.lucide-icons]
 version = "1.24.0"
 features = ["iced"]
 
-[workspace.dependencies.elements]
-path = "./elements"
-
-[workspace.dependencies.pages]
-path = "./pages"
+[workspace.dependencies.logging_subscriber]
+git = "https://gitlab.com/invra/logging_subscriber"
 
 [workspace.dependencies.tokio]
 version = "1.52.3"

@@ -1,7 +1,4 @@
-use std::sync::{
-    Mutex,
-    OnceLock,
-};
+use std::sync::RwLock;
 
 pub mod editor;
 pub mod general;
@@ -13,16 +10,14 @@ pub enum Page {
 }
 
 /// Owner of data on what page you are on
-fn current() -> &'static Mutex<Page> {
-    static CURRENT: OnceLock<Mutex<Page>> = OnceLock::new();
-    CURRENT.get_or_init(|| Mutex::new(Page::General))
-}
+static CURRENT: RwLock<Page> = RwLock::new(Page::General);
 
 /// Sets page data for which page view to be on
 pub fn set_page(id: Page) {
-    *current().lock().unwrap() = id;
+    tracing::debug!("Setting RwLock to {id:?}");
+    *CURRENT.write().unwrap() = id;
 }
 
 pub fn current_page() -> Page {
-    *current().lock().unwrap()
+    *CURRENT.read().unwrap()
 }

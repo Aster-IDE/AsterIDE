@@ -1,17 +1,15 @@
 mod app_icon;
 mod sidebar;
+use std::path::PathBuf;
+
 use elements::bottom_area;
 use iced::{
-    Element,
-    Subscription,
-    Task,
+    Element, Subscription, Task,
     theme::Theme,
-    widget::{
-        column,
-        row,
-    },
+    widget::{column, row},
     window,
 };
+
 use lucide_icons::LUCIDE_FONT_BYTES;
 
 struct AsterIDE {
@@ -83,7 +81,36 @@ impl AsterIDE {
     }
 }
 
+struct Args {
+    config_path: Option<PathBuf>,
+    version: bool,
+    silent: bool,
+}
+
+fn parse_args() -> Args {
+    let mut args = pico_args::Arguments::from_env();
+
+    Args {
+        config_path: args.opt_value_from_str(["-c", "--config"]).unwrap(),
+        version: args.contains(["-v", "--version"]),
+        silent: args.contains(["-s", "--silent"]),
+    }
+}
+
 pub fn main() -> iced::Result {
+    let args = parse_args();
+
+    if args.version {
+        print!("AsterIDE v{}", env!("CARGO_PKG_VERSION"));
+        return iced::Result::Ok(());
+    }
+
+    if !args.silent {
+        tracing::subscriber::set_global_default(logging_subscriber::SimpleSubscriber).unwrap();
+    }
+
+    let _config = config::init_ring(args.config_path);
+
     let window_settings = window::Settings {
         // TODO: Create own titlebar later
         decorations: true,
@@ -96,6 +123,8 @@ pub fn main() -> iced::Result {
         fonts: vec![LUCIDE_FONT_BYTES.into()],
         ..Default::default()
     };
+
+    tracing::info!("Init iced app");
 
     iced::application(AsterIDE::new, AsterIDE::update, AsterIDE::view)
         .subscription(AsterIDE::subscription)
