@@ -12,6 +12,7 @@
   libxcb-wm,
   libxcursor,
   libxkbcommon,
+  llvmPackages_22
 }:
 let
   inherit (inputs) fenix crane;
@@ -34,11 +35,12 @@ let
     libxcb-wm
     libxcursor
     libxkbcommon
+    llvmPackages_22.clang
   ];
 
   commonArgs = {
     pname = "asteride";
-    version = "0.1.0";
+    version = "2.0.0";
     src = craneLib.cleanCargoSource ../.;
     strictDeps = true;
     nativeBuildInputs = buildDeps;
@@ -54,9 +56,9 @@ craneLib.buildPackage (
 
     meta = with lib; {
       description = "A Simple Text Editor written in Rust.";
-      homepage = "https://github.com/playfairs/AsterIDE";
-      license = licenses.gpl3;
-      maintainers = [ "Invra <identificationsucks@gmail.com>" ];
+      homepage = "https://asteride.dev";
+      license = licenses.asl20;
+      maintainers = [ "playfairs <root@playfairs.cc>" "Invra <identificationsucks@gmail.com>" ];
     };
   }
 )
