@@ -1,10 +1,5 @@
 [workspace]
-members = [
-  "xtask",
-  "asteride",
-  "pages",
-  "elements",
-]
+members = ["xtask", "asteride", "pages", "elements"]
 
 default-members = ["asteride"]
 resolver = "3"

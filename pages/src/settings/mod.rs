@@ -1,10 +1,15 @@
 mod pages;
 mod sidebar;
-use iced::{Element, Subscription, Task, widget::row};
+use iced::{
+    Element,
+    Subscription,
+    Task,
+    widget::row,
+};
 
 use crate::settings::pages::Page;
 
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct Settings {
     sidebar: sidebar::Sidebar,
     general: pages::general::General,

@@ -1,4 +1,7 @@
-use std::sync::{Mutex, OnceLock};
+use std::sync::{
+    Mutex,
+    OnceLock,
+};
 
 pub mod editor;
 pub mod general;

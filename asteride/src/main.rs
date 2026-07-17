@@ -2,9 +2,14 @@ mod app_icon;
 mod sidebar;
 use elements::bottom_area;
 use iced::{
-    Element, Subscription, Task,
+    Element,
+    Subscription,
+    Task,
     theme::Theme,
-    widget::{column, row},
+    widget::{
+        column,
+        row,
+    },
     window,
 };
 use lucide_icons::LUCIDE_FONT_BYTES;
@@ -30,7 +35,7 @@ enum Message {
 
 impl AsterIDE {
     fn theme(&self) -> Theme {
-        Theme::Dark
+        Theme::CatppuccinMocha
     }
 
     fn subscription(&self) -> Subscription<Message> {
