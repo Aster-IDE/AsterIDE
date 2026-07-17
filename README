@@ -1,5 +1,5 @@
                                 AsterIDE 🌸
-                           v1.6.5 | 06-26-2026
+                           v2.0.0 | 06-26-2026
 
       A Simple Text Editor written in Rust, made for Femboys 🌸
 
@@ -17,8 +17,8 @@
 
 
             Because we do not have $100 / A$150 to spend on Apple Developer
-            certification (especially for a side project), this application
-            is not signed and will not be signed.
+            certification (especially for a side project), this app is not
+            signed and probably will not be signed.
 
             To bypass Gatekeeper and run this app unsigned:
 
@@ -31,26 +31,4 @@
             If you still need help, or still cannot install AsterIDE
             you can read more information at https://docs.asteride.dev/troubleshooting
 
-      Written in Rust with love by Playfairs.
-
-      3. Aster.
-
-         A Simpler Text Editor written in Rust.
-
-         https://github.com/Aster-IDE/Aster
-
-         3.A. What is Aster and what makes it different from AsterIDE?
-
-            AsterIDE is a full IDE written in Rust. It started as a joke project
-            but evolved into a more serious development environment over time.
-
-            Aster, on the other hand, is a simpler text editor focused on speed,
-            minimalism, and writing text without extra complexity.
-
-      4. Which one should I use?
-
-         Use AsterIDE if you are developing software, managing projects, or
-         need advanced editing features.
-
-         Use Aster if you are writing notes, documents, or prefer a simpler,
-         more focused text editor.
+      Written in Rust with love by Playfairs
