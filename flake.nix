@@ -61,7 +61,7 @@
         }:
         import ./nix/homeModules.nix {
           inherit config lib pkgs;
-          asteride-pkg = self.packages.${pkgs.system}.asteride;
+          asteride-pkg = self.packages.${pkgs.stdenv.system}.asteride;
         };
     };
 }
