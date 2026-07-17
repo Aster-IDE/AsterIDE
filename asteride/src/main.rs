@@ -109,7 +109,10 @@ pub fn main() -> iced::Result {
         tracing::subscriber::set_global_default(logging_subscriber::SimpleSubscriber).unwrap();
     }
 
-    let _config = config::init_ring(args.config_path);
+    config::init_ring(args.config_path);
+    let config = config::get();
+
+    tracing::debug!("Config contents: {config:?}");
 
     let window_settings = window::Settings {
         // TODO: Create own titlebar later
