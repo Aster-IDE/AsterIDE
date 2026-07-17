@@ -12,7 +12,6 @@
   libxcb-wm,
   libxcursor,
   libxkbcommon,
-  llvmPackages_22
 }:
 let
   inherit (inputs) fenix crane;
@@ -20,13 +19,12 @@ let
   toolchain =
     with fenix.packages.${stdenv.system};
     combine [
-      latest.toolchain
+      minimal.toolchain
     ];
 
   craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
 
   buildDeps = [
-    llvmPackages_22.clang
     pkg-config
   ] ++ lib.optionals stdenv.isLinux [
     libglvnd
