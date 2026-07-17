@@ -1,14 +1,7 @@
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 use theme::CherryBlossomTheme;
 
-use egui::{
-    Color32,
-    Margin,
-    Stroke,
-};
+use egui::{Color32, Margin, Stroke};
 
 #[derive(Clone, Debug, PartialEq, Copy, Serialize, Deserialize)]
 pub enum TerminalRightClickAction {
@@ -55,11 +48,7 @@ impl Default for TerminalSettings {
 }
 
 use crate::Settings;
-use crate::ui::{
-    cozy_row_filtered,
-    matches_search,
-    setting_card,
-};
+use crate::ui::{cozy_row_filtered, matches_search, setting_card};
 
 pub fn show_terminal_settings(
     settings: &mut Settings,

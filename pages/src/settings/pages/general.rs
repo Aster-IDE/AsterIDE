@@ -1,16 +1,6 @@
 use iced::{
-    Element,
-    Length,
-    Subscription,
-    Task,
-    Theme,
-    widget::{
-        Space,
-        column,
-        pick_list,
-        row,
-        text,
-    },
+    Element, Length, Subscription, Task, Theme,
+    widget::{Space, column, pick_list, row, text},
 };
 
 #[derive(Default, Debug, Clone, PartialEq)]

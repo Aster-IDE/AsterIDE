@@ -1,7 +1,4 @@
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 use theme;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -38,11 +35,7 @@ impl Default for AppearanceSettings {
 }
 
 use crate::Settings;
-use crate::ui::{
-    cozy_row_filtered,
-    matches_search,
-    setting_card,
-};
+use crate::ui::{cozy_row_filtered, matches_search, setting_card};
 
 pub fn show_appearance_settings(
     settings: &mut Settings,

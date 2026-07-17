@@ -1,7 +1,4 @@
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 /// Public surface for the config.
 #[derive(Debug, Clone, PartialEq)]

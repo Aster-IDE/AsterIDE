@@ -14,7 +14,7 @@
     rustfmt = {
       options = [
         "--config"
-        "condense_wildcard_suffixes=true,imports_layout=vertical"
+        "condense_wildcard_suffixes=true"
         "--style-edition"
         "2024"
       ];

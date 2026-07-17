@@ -1,7 +1,4 @@
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SearchSettings {
@@ -31,10 +28,7 @@ impl Default for SearchSettings {
 }
 
 use crate::Settings;
-use crate::ui::{
-    cozy_row_filtered,
-    setting_card,
-};
+use crate::ui::{cozy_row_filtered, setting_card};
 
 pub fn show_search_settings(
     settings: &mut Settings,

@@ -1,28 +1,16 @@
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 pub mod categories;
 pub mod ui;
 
 pub use categories::appearance::AppearanceSettings;
-pub use categories::editor::{
-    CursorStyle,
-    EditorSettings,
-};
+pub use categories::editor::{CursorStyle, EditorSettings};
 pub use categories::files::FilesSettings;
-pub use categories::keyboard::{
-    KeyboardSettings,
-    KeymapScheme,
-};
+pub use categories::keyboard::{KeyboardSettings, KeymapScheme};
 pub use categories::lsp::LspSettings;
 pub use categories::scm::ScmSettings;
 pub use categories::search::SearchSettings;
-pub use categories::workbench::{
-    PanelPosition,
-    WorkbenchSettings,
-};
+pub use categories::workbench::{PanelPosition, WorkbenchSettings};
 
 #[derive(Clone, Debug, PartialEq, Copy, Serialize, Deserialize)]
 pub enum SettingsCategory {
@@ -438,10 +426,7 @@ impl Settings {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        CursorStyle,
-        Settings,
-    };
+    use super::{CursorStyle, Settings};
 
     #[test]
     fn settings_round_trip_uses_toml() {

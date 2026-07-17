@@ -6,13 +6,7 @@
 //! the only egui coupling — lives in the consumer.
 
 use eframe::egui;
-use plugins::{
-    Highlighter,
-    HlClass,
-    NordTheme,
-    Rgb,
-    Theme,
-};
+use plugins::{Highlighter, HlClass, NordTheme, Rgb, Theme};
 
 fn color32(rgb: Rgb) -> egui::Color32 {
     egui::Color32::from_rgb(rgb.r, rgb.g, rgb.b)

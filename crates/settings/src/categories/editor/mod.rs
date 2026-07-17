@@ -1,7 +1,4 @@
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Copy, Serialize, Deserialize)]
 pub enum CursorStyle {

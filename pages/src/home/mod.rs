@@ -1,17 +1,6 @@
 use iced::{
-    Element,
-    Font,
-    Length,
-    Subscription,
-    Task,
-    Theme,
-    widget::{
-        button,
-        column,
-        container,
-        row,
-        text,
-    },
+    Element, Font, Length, Subscription, Task, Theme,
+    widget::{button, column, container, row, text},
 };
 use lucide_icons::Icon;
 use rfd::FileDialog;

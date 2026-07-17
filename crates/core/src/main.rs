@@ -8,19 +8,10 @@ mod highlight;
 
 use command_palette::CommandPalette;
 use eframe::egui;
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 use settings::Settings;
-use tabs::{
-    TabManager,
-    TabType,
-};
-use theme::{
-    CherryBlossomTheme,
-    lerp_color,
-};
+use tabs::{TabManager, TabType};
+use theme::{CherryBlossomTheme, lerp_color};
 
 #[derive(Serialize, Deserialize, Default)]
 struct AppState {

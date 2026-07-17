@@ -1,11 +1,6 @@
 mod pages;
 mod sidebar;
-use iced::{
-    Element,
-    Subscription,
-    Task,
-    widget::row,
-};
+use iced::{Element, Subscription, Task, widget::row};
 
 use crate::settings::pages::Page;
 

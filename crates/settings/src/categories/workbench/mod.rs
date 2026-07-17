@@ -1,7 +1,4 @@
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Copy, Serialize, Deserialize)]
 pub enum PanelPosition {
@@ -46,11 +43,7 @@ impl Default for WorkbenchSettings {
 }
 
 use crate::Settings;
-use crate::ui::{
-    cozy_row_filtered,
-    matches_search,
-    setting_card,
-};
+use crate::ui::{cozy_row_filtered, matches_search, setting_card};
 
 pub fn show_workbench_settings(
     settings: &mut Settings,
