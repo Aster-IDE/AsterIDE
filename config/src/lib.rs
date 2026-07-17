@@ -20,18 +20,21 @@ fn config_home() -> PathBuf {
     }
 }
 
+fn resolve_config_path(override_path: Option<PathBuf>) -> PathBuf {
+    match override_path {
+        Some(path) if path.is_dir() => path.join("config.toml"),
+        Some(path) => path,
+        None => config_home().join("config.toml"),
+    }
+}
+
 /// Goes around and initializes vital stuff for config to
 /// be read and written
 pub fn init_ring(
     // used to override a path, e.g -c / --config
     override_default_path: Option<PathBuf>,
 ) {
-    let maybe_file = override_default_path.unwrap_or_else(config_home);
-    let config_path = if maybe_file.is_dir() {
-        maybe_file.join("config.toml")
-    } else {
-        maybe_file.to_path_buf()
-    };
+    let config_path = resolve_config_path(override_default_path);
 
     let inner_config = if config_path.is_file() {
         let raw = std::fs::read_to_string(&config_path)
