@@ -56,7 +56,7 @@ impl From<ThemeSetting> for iced::Theme {
 }
 
 impl TryFrom<&iced::Theme> for ThemeSetting {
-    type Error = (); // or a proper error type
+    type Error = ();
 
     fn try_from(theme: &iced::Theme) -> Result<Self, Self::Error> {
         match theme {
