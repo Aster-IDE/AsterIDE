@@ -2613,6 +2613,7 @@ dependencies = [
 name = "pages"
 version = "2.0.0"
 dependencies = [
+ "config",
  "elements",
  "iced",
  "lucide-icons",

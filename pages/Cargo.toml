@@ -9,6 +9,7 @@ version.workspace = true
 [dependencies]
 rfd.workspace = true
 iced.workspace = true
+config.workspace = true
 tracing.workspace = true
 elements.workspace = true
 lucide-icons.workspace = true

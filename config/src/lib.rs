@@ -1,5 +1,5 @@
 pub mod spec;
-mod theme;
+pub mod theme;
 use std::{
     env,
     path::PathBuf,

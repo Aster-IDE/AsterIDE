@@ -32,6 +32,40 @@ pub enum ThemeSetting {
     RosePineMoon,
 }
 
+impl ThemeSetting {
+    pub fn iced_all() -> Vec<iced::Theme> {
+        vec![
+            Self::Light.into(),
+            Self::Dark.into(),
+            Self::Dracula.into(),
+            Self::Nord.into(),
+            Self::SolarizedLight.into(),
+            Self::SolarizedDark.into(),
+            Self::GruvboxLight.into(),
+            Self::GruvboxDark.into(),
+            Self::CatppuccinLatte.into(),
+            Self::CatppuccinFrappe.into(),
+            Self::CatppuccinMacchiato.into(),
+            Self::CatppuccinMocha.into(),
+            Self::TokyoNight.into(),
+            Self::TokyoNightStorm.into(),
+            Self::TokyoNightLight.into(),
+            Self::KanagawaWave.into(),
+            Self::KanagawaDragon.into(),
+            Self::KanagawaLotus.into(),
+            Self::Moonfly.into(),
+            Self::Nightfly.into(),
+            Self::Oxocarbon.into(),
+            Self::Ferra.into(),
+            Self::CherryBlossomLight.into(),
+            Self::CherryBlossomDark.into(),
+            Self::RosePine.into(),
+            Self::RosePineDawn.into(),
+            Self::RosePineMoon.into(),
+        ]
+    }
+}
+
 const CHERRY_BLOSSOM_LIGHT: Palette = Palette {
     background: Color::from_rgba8(245, 220, 230, 1.0),
     text: Color::from_rgba8(80, 40, 60, 1.0),

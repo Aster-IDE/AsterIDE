@@ -47,7 +47,7 @@ impl General {
                 ],
                 Space::new().width(Length::Fill),
                 pick_list(
-                    iced::Theme::ALL,
+                    config::theme::ThemeSetting::iced_all(),
                     self.selected_theme.clone(),
                     Message::ThemeSelected
                 )
