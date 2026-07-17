@@ -33,7 +33,15 @@ enum Message {
 
 impl AsterIDE {
     fn theme(&self) -> Theme {
-        Theme::CatppuccinMocha
+        let config_reader = config::get();
+
+        config_reader.appearance.theme.clone()
+    }
+
+    fn scale_factor(&self) -> f32 {
+        let config_reader = config::get();
+
+        config_reader.appearance.scale.clone()
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -110,7 +118,6 @@ pub fn main() -> iced::Result {
     }
 
     config::init_ring(args.config_path);
-    let config = config::get();
 
     let window_settings = window::Settings {
         // TODO: Create own titlebar later
@@ -131,6 +138,7 @@ pub fn main() -> iced::Result {
         .subscription(AsterIDE::subscription)
         .title("AsterIDE")
         .window(window_settings)
+        .scale_factor(AsterIDE::scale_factor)
         .theme(AsterIDE::theme)
         .settings(boot_settings)
         .run()
