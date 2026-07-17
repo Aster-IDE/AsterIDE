@@ -4,18 +4,6 @@ members = [
   "asteride",
   "pages",
   "elements",
-
-  # pre-2.0 stuff, keep this for now i guess just commented out.
-  # "crates/command_palette",
-  # "crates/core",
-  # "crates/editor",
-  # "crates/lsp",
-  # "crates/plugins",
-  # "crates/search",
-  # "crates/settings",
-  # "crates/shared",
-  # "crates/tabs",
-  # "crates/theme",
 ]
 
 default-members = ["asteride"]
