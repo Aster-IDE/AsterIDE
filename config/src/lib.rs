@@ -31,7 +31,7 @@ fn resolve_config_path(override_path: Option<PathBuf>) -> PathBuf {
         None => config_home().join("config.toml"),
     };
 
-    tracing::debug!("Rsolved config path: {result:?}");
+    tracing::debug!("Resolved config path: {result:?}");
     result
 }
 
