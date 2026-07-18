@@ -65,7 +65,7 @@ impl Home {
                                 }),
                             container(
                                 svg(svg::Handle::from_memory(include_bytes!(
-                                    "../../../assets/cherry_blossom.svg"
+                                    "../../assets/cherry_blossom.svg"
                                 )))
                                 .height(35)
                                 .width(35)
