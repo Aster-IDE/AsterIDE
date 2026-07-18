@@ -1,6 +1,6 @@
 use iced::{
     Element, Font, Length, Subscription, Task, Theme,
-    widget::{button, column, container, row, text},
+    widget::{button, column, container, row, svg, text},
 };
 use lucide_icons::Icon;
 use rfd::FileDialog;
@@ -50,22 +50,54 @@ impl Home {
         container(
             column![
                 column![
-                    text("AsterIDE")
-                        .size(44)
+                    container(
+                        row![
+                            text("AsterIDE")
+                                .size(44)
+                                .height(Length::Fill)
+                                .center()
+                                .style(|theme: &Theme| {
+                                    let palette = theme.extended_palette();
+
+                                    text::Style {
+                                        color: Some(palette.primary.base.color),
+                                    }
+                                }),
+                            container(
+                                svg(svg::Handle::from_memory(include_bytes!(
+                                    "../../../assets/cherry_blossom.svg"
+                                )))
+                                .height(35)
+                                .width(35)
+                                .style(|theme: &Theme, _| {
+                                    let palette = theme.extended_palette();
+
+                                    svg::Style {
+                                        color: Some(palette.primary.base.color),
+                                    }
+                                })
+                            )
+                            .height(Length::Fill)
+                            .center_y(Length::Fill),
+                        ]
+                        .spacing(8)
+                    )
+                    .height(44)
+                    .center_x(Length::Fill)
+                    .width(Length::Fill),
+                    text("A Simple Text Editor written in Rust")
+                        .size(18)
                         .width(Length::Fill)
-                        .center()
                         .style(|theme: &Theme| {
                             let palette = theme.extended_palette();
 
                             text::Style {
-                                color: Some(palette.primary.base.color),
+                                color: Some(palette.secondary.base.color),
                             }
-                        }),
-                    text("A Simple Text Editor written in Rust")
-                        .size(18)
-                        .width(Length::Fill)
+                        })
                         .center()
-                ],
+                ]
+                .spacing(5),
                 container(
                     column![
                         nav_button(Icon::FolderOpen, "Open Folder", Message::OpenFolder),
