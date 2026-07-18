@@ -40,7 +40,7 @@ let
   commonArgs = {
     pname = "asteride";
     version = "2.0.0";
-    src = craneLib.cleanCargoSource ../.;
+    src = craneLib.path ../.;
     strictDeps = true;
     nativeBuildInputs = buildDeps;
     buildInputs = buildDeps;
