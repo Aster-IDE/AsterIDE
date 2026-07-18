@@ -26,7 +26,8 @@ let
 
   buildDeps = [
     pkg-config
-  ] ++ lib.optionals stdenv.isLinux [
+  ]
+  ++ lib.optionals stdenv.isLinux [
     libglvnd
     freetype
     fontconfig
@@ -57,7 +58,10 @@ craneLib.buildPackage (
       description = "A Simple Text Editor written in Rust.";
       homepage = "https://asteride.dev";
       license = licenses.asl20;
-      maintainers = [ "playfairs <root@playfairs.cc>" "Invra <identificationsucks@gmail.com>" ];
+      maintainers = [
+        "playfairs <root@playfairs.cc>"
+        "Invra <identificationsucks@gmail.com>"
+      ];
     };
   }
 )
