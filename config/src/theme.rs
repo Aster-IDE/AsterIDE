@@ -1,7 +1,21 @@
 use iced::{Color, theme::Palette};
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct ThemeOption {
+    pub key: String,
+    pub label: String,
+    pub theme: iced::Theme,
+}
+
+impl std::fmt::Display for ThemeOption {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.label)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ThemeSetting {
     Light,
     Dark,
@@ -33,36 +47,118 @@ pub enum ThemeSetting {
 }
 
 impl ThemeSetting {
-    pub fn iced_all() -> Vec<iced::Theme> {
-        vec![
-            Self::Light.into(),
-            Self::Dark.into(),
-            Self::Dracula.into(),
-            Self::Nord.into(),
-            Self::SolarizedLight.into(),
-            Self::SolarizedDark.into(),
-            Self::GruvboxLight.into(),
-            Self::GruvboxDark.into(),
-            Self::CatppuccinLatte.into(),
-            Self::CatppuccinFrappe.into(),
-            Self::CatppuccinMacchiato.into(),
-            Self::CatppuccinMocha.into(),
-            Self::TokyoNight.into(),
-            Self::TokyoNightStorm.into(),
-            Self::TokyoNightLight.into(),
-            Self::KanagawaWave.into(),
-            Self::KanagawaDragon.into(),
-            Self::KanagawaLotus.into(),
-            Self::Moonfly.into(),
-            Self::Nightfly.into(),
-            Self::Oxocarbon.into(),
-            Self::Ferra.into(),
-            Self::CherryBlossomLight.into(),
-            Self::CherryBlossomDark.into(),
-            Self::RosePine.into(),
-            Self::RosePineDawn.into(),
-            Self::RosePineMoon.into(),
+    pub fn all() -> &'static [ThemeSetting] {
+        use ThemeSetting::*;
+        &[
+            Light,
+            Dark,
+            Dracula,
+            Nord,
+            SolarizedLight,
+            SolarizedDark,
+            GruvboxLight,
+            GruvboxDark,
+            CatppuccinLatte,
+            CatppuccinFrappe,
+            CatppuccinMacchiato,
+            CatppuccinMocha,
+            TokyoNight,
+            TokyoNightStorm,
+            TokyoNightLight,
+            KanagawaWave,
+            KanagawaDragon,
+            KanagawaLotus,
+            Moonfly,
+            Nightfly,
+            Oxocarbon,
+            Ferra,
+            CherryBlossomLight,
+            CherryBlossomDark,
+            RosePine,
+            RosePineDawn,
+            RosePineMoon,
         ]
+    }
+
+    pub fn iced_all() -> Vec<ThemeOption> {
+        Self::all()
+            .iter()
+            .map(|t| ThemeOption {
+                key: t.key().to_string(),
+                label: t.display_name().to_string(),
+                theme: (*t).into(),
+            })
+            .collect()
+    }
+
+    pub fn key(&self) -> &'static str {
+        use ThemeSetting::*;
+        match self {
+            Light => "light",
+            Dark => "dark",
+            Dracula => "dracula",
+            Nord => "nord",
+            SolarizedLight => "solarized_light",
+            SolarizedDark => "solarized_dark",
+            GruvboxLight => "gruvbox_light",
+            GruvboxDark => "gruvbox_dark",
+            CatppuccinLatte => "catppuccin_latte",
+            CatppuccinFrappe => "catppuccin_frappe",
+            CatppuccinMacchiato => "catppuccin_macchiato",
+            CatppuccinMocha => "catppuccin_mocha",
+            TokyoNight => "tokyo_night",
+            TokyoNightStorm => "tokyo_night_storm",
+            TokyoNightLight => "tokyo_night_light",
+            KanagawaWave => "kanagawa_wave",
+            KanagawaDragon => "kanagawa_dragon",
+            KanagawaLotus => "kanagawa_lotus",
+            Moonfly => "moonfly",
+            Nightfly => "nightfly",
+            Oxocarbon => "oxocarbon",
+            Ferra => "ferra",
+            CherryBlossomLight => "cherry_blossom_light",
+            CherryBlossomDark => "cherry_blossom_dark",
+            RosePine => "rose_pine",
+            RosePineDawn => "rose_pine_dawn",
+            RosePineMoon => "rose_pine_moon",
+        }
+    }
+
+    pub fn display_name(&self) -> &'static str {
+        use ThemeSetting::*;
+        match self {
+            Light => "Light",
+            Dark => "Dark",
+            Dracula => "Dracula",
+            Nord => "Nord",
+            SolarizedLight => "Solarized Light",
+            SolarizedDark => "Solarized Dark",
+            GruvboxLight => "Gruvbox Light",
+            GruvboxDark => "Gruvbox Dark",
+            CatppuccinLatte => "Catppuccin Latte",
+            CatppuccinFrappe => "Catppuccin Frappé",
+            CatppuccinMacchiato => "Catppuccin Macchiato",
+            CatppuccinMocha => "Catppuccin Mocha",
+            TokyoNight => "Tokyo Night",
+            TokyoNightStorm => "Tokyo Night Storm",
+            TokyoNightLight => "Tokyo Night Light",
+            KanagawaWave => "Kanagawa Wave",
+            KanagawaDragon => "Kanagawa Dragon",
+            KanagawaLotus => "Kanagawa Lotus",
+            Moonfly => "Moonfly",
+            Nightfly => "Nightfly",
+            Oxocarbon => "Oxocarbon",
+            Ferra => "Ferra",
+            CherryBlossomLight => "Cherry Blossom Light",
+            CherryBlossomDark => "Cherry Blossom Dark",
+            RosePine => "Rosé Pine",
+            RosePineDawn => "Rosé Pine Dawn",
+            RosePineMoon => "Rosé Pine Moon",
+        }
+    }
+
+    pub fn from_key(key: &str) -> Option<Self> {
+        Self::all().iter().copied().find(|t| t.key() == key)
     }
 }
 
@@ -137,57 +233,89 @@ impl From<ThemeSetting> for iced::Theme {
             ThemeSetting::Oxocarbon => iced::Theme::Oxocarbon,
             ThemeSetting::Ferra => iced::Theme::Ferra,
             ThemeSetting::CherryBlossomLight => {
-                iced::Theme::custom("Cherry Blossom Light".to_string(), CHERRY_BLOSSOM_LIGHT)
+                iced::Theme::custom(setting.display_name().to_string(), CHERRY_BLOSSOM_LIGHT)
             }
             ThemeSetting::CherryBlossomDark => {
-                iced::Theme::custom("Cherry Blossom Dark".to_string(), CHERRY_BLOSSOM_DARK)
+                iced::Theme::custom(setting.display_name().to_string(), CHERRY_BLOSSOM_DARK)
             }
-            ThemeSetting::RosePine => iced::Theme::custom("Rose Pine".to_string(), ROSE_PINE),
+            ThemeSetting::RosePine => {
+                iced::Theme::custom(setting.display_name().to_string(), ROSE_PINE)
+            }
             ThemeSetting::RosePineMoon => {
-                iced::Theme::custom("Rose Pine Moon".to_string(), ROSE_PINE_MOON)
+                iced::Theme::custom(setting.display_name().to_string(), ROSE_PINE_MOON)
             }
             ThemeSetting::RosePineDawn => {
-                iced::Theme::custom("Rose Pine Dawn".to_string(), ROSE_PINE_DAWN)
+                iced::Theme::custom(setting.display_name().to_string(), ROSE_PINE_DAWN)
             }
         }
     }
 }
 
-impl TryFrom<&iced::Theme> for ThemeSetting {
-    type Error = String;
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct CustomThemeSpec {
+    pub display_name: String,
+    #[serde(with = "hex_color")]
+    pub background: Color,
+    #[serde(with = "hex_color")]
+    pub text: Color,
+    #[serde(with = "hex_color")]
+    pub primary: Color,
+    #[serde(with = "hex_color")]
+    pub success: Color,
+    #[serde(with = "hex_color")]
+    pub warning: Color,
+    #[serde(with = "hex_color")]
+    pub danger: Color,
+}
 
-    fn try_from(theme: &iced::Theme) -> Result<Self, Self::Error> {
-        match theme {
-            iced::Theme::Light => Ok(ThemeSetting::Light),
-            iced::Theme::Dark => Ok(ThemeSetting::Dark),
-            iced::Theme::Dracula => Ok(ThemeSetting::Dracula),
-            iced::Theme::Nord => Ok(ThemeSetting::Nord),
-            iced::Theme::SolarizedLight => Ok(ThemeSetting::SolarizedLight),
-            iced::Theme::SolarizedDark => Ok(ThemeSetting::SolarizedDark),
-            iced::Theme::GruvboxLight => Ok(ThemeSetting::GruvboxLight),
-            iced::Theme::GruvboxDark => Ok(ThemeSetting::GruvboxDark),
-            iced::Theme::CatppuccinLatte => Ok(ThemeSetting::CatppuccinLatte),
-            iced::Theme::CatppuccinFrappe => Ok(ThemeSetting::CatppuccinFrappe),
-            iced::Theme::CatppuccinMacchiato => Ok(ThemeSetting::CatppuccinMacchiato),
-            iced::Theme::CatppuccinMocha => Ok(ThemeSetting::CatppuccinMocha),
-            iced::Theme::TokyoNight => Ok(ThemeSetting::TokyoNight),
-            iced::Theme::TokyoNightStorm => Ok(ThemeSetting::TokyoNightStorm),
-            iced::Theme::TokyoNightLight => Ok(ThemeSetting::TokyoNightLight),
-            iced::Theme::KanagawaWave => Ok(ThemeSetting::KanagawaWave),
-            iced::Theme::KanagawaDragon => Ok(ThemeSetting::KanagawaDragon),
-            iced::Theme::KanagawaLotus => Ok(ThemeSetting::KanagawaLotus),
-            iced::Theme::Moonfly => Ok(ThemeSetting::Moonfly),
-            iced::Theme::Nightfly => Ok(ThemeSetting::Nightfly),
-            iced::Theme::Oxocarbon => Ok(ThemeSetting::Oxocarbon),
-            iced::Theme::Ferra => Ok(ThemeSetting::Ferra),
-            iced::Theme::Custom(_) => match theme.to_string().as_str() {
-                "Cherry Blossom Light" => Ok(ThemeSetting::CherryBlossomLight),
-                "Cherry Blossom Dark" => Ok(ThemeSetting::CherryBlossomDark),
-                "Rose Pine" => Ok(ThemeSetting::RosePine),
-                "Rose Pine Moon" => Ok(ThemeSetting::RosePineMoon),
-                "Rose Pine Dawn" => Ok(ThemeSetting::RosePineDawn),
-                _ => Err(format!("Unknown custom theme name: {}", theme.to_string())),
+impl CustomThemeSpec {
+    pub fn to_iced_theme(&self) -> iced::Theme {
+        iced::Theme::custom(
+            self.display_name.clone(),
+            Palette {
+                background: self.background,
+                text: self.text,
+                primary: self.primary,
+                success: self.success,
+                warning: self.warning,
+                danger: self.danger,
             },
+        )
+    }
+}
+
+mod hex_color {
+    use iced::Color;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<S: Serializer>(color: &Color, s: S) -> Result<S::Ok, S::Error> {
+        let r = (color.r * 255.0).round() as u8;
+        let g = (color.g * 255.0).round() as u8;
+        let b = (color.b * 255.0).round() as u8;
+        let a = (color.a * 255.0).round() as u8;
+        if a == 255 {
+            format!("#{r:02X}{g:02X}{b:02X}").serialize(s)
+        } else {
+            format!("#{r:02X}{g:02X}{b:02X}{a:02X}").serialize(s)
+        }
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Color, D::Error> {
+        let raw = String::deserialize(d)?;
+        let hex = raw.trim().trim_start_matches('#');
+        let bytes = |i: usize| -> Result<u8, D::Error> {
+            u8::from_str_radix(&hex[i..i + 2], 16)
+                .map_err(|e| serde::de::Error::custom(format!("bad hex in {raw:?}: {e}")))
+        };
+        match hex.len() {
+            6 => Ok(Color::from_rgba8(bytes(0)?, bytes(2)?, bytes(4)?, 1.0)),
+            8 => {
+                let a = bytes(6)? as f32 / 255.0;
+                Ok(Color::from_rgba8(bytes(0)?, bytes(2)?, bytes(4)?, a))
+            }
+            _ => Err(serde::de::Error::custom(format!(
+                "expected #RRGGBB or #RRGGBBAA, got {raw:?}"
+            ))),
         }
     }
 }

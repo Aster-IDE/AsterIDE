@@ -34,8 +34,7 @@ enum Message {
 impl AsterIDE {
     fn theme(&self) -> Theme {
         let config_reader = config::get();
-
-        config_reader.appearance.theme.clone()
+        config_reader.appearance.resolve_theme()
     }
 
     fn scale_factor(&self) -> f32 {

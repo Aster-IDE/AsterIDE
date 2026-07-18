@@ -1,4 +1,6 @@
+use crate::theme::{CustomThemeSpec, ThemeOption, ThemeSetting};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Public surface for the config.
 #[derive(Debug, Clone, PartialEq)]
@@ -10,8 +12,9 @@ impl Config {
     pub fn new() -> Self {
         Self {
             appearance: Appearance {
-                theme: crate::theme::ThemeSetting::CherryBlossomDark.into(),
+                theme: "dark".to_string(),
                 scale: 1.0,
+                custom_themes: HashMap::new(),
             },
         }
     }
@@ -31,13 +34,11 @@ impl From<InnerConfig> for Config {
             appearance: inner
                 .appearance
                 .map(|a| Appearance {
-                    theme: a
-                        .theme
-                        .map(iced::Theme::from)
-                        .unwrap_or(defaults.appearance.theme.clone()),
-                    scale: a.scale.unwrap_or(defaults.appearance.scale.clone()),
+                    theme: a.theme.unwrap_or_else(|| defaults.appearance.theme.clone()),
+                    scale: a.scale.unwrap_or(defaults.appearance.scale),
+                    custom_themes: a.custom_themes.unwrap_or_default(),
                 })
-                .unwrap_or(defaults.appearance.clone()),
+                .unwrap_or(defaults.appearance),
         }
     }
 }
@@ -48,8 +49,9 @@ impl From<&Config> for InnerConfig {
     fn from(config: &Config) -> Self {
         Self {
             appearance: Some(InnerAppearance {
-                theme: crate::theme::ThemeSetting::try_from(&config.appearance.theme).ok(),
+                theme: Some(config.appearance.theme.clone()),
                 scale: Some(config.appearance.scale),
+                custom_themes: Some(config.appearance.custom_themes.clone()),
             }),
         }
     }
@@ -63,13 +65,51 @@ pub(crate) struct InnerConfig {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Appearance {
-    /// Inner to `iced::Theme` until I feel like adding custom themes
-    pub theme: iced::Theme,
+    pub theme: String,
     pub scale: f32,
+    pub custom_themes: HashMap<String, CustomThemeSpec>,
+}
+
+impl Appearance {
+    pub fn resolve_theme(&self) -> iced::Theme {
+        if let Some(builtin) = ThemeSetting::from_key(&self.theme) {
+            return builtin.into();
+        }
+        if let Some(custom) = self.custom_themes.get(&self.theme) {
+            return custom.to_iced_theme();
+        }
+        tracing::error!(
+            title = "Unknown theme key",
+            description = format!(
+                "{:?} was not found under appearance.custom_themes.{}",
+                self.theme, self.theme
+            )
+        );
+        std::process::exit(1);
+    }
 }
 
 #[derive(Deserialize, Serialize)]
 pub(crate) struct InnerAppearance {
-    theme: Option<crate::theme::ThemeSetting>,
+    theme: Option<String>,
     scale: Option<f32>,
+    custom_themes: Option<HashMap<String, CustomThemeSpec>>,
+}
+
+pub fn theme_options(config: &Config) -> Vec<ThemeOption> {
+    let mut options = ThemeSetting::iced_all();
+
+    options.extend(
+        config
+            .appearance
+            .custom_themes
+            .iter()
+            .map(|(key, spec)| ThemeOption {
+                key: key.clone(),
+                label: spec.display_name.clone(),
+                theme: spec.to_iced_theme(),
+            }),
+    );
+
+    options
 }
