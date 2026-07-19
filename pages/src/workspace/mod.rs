@@ -17,7 +17,7 @@ impl Workspace {
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            // _ => Task::none(),
+            _ => Task::none(),
         }
     }
     pub fn view(&self) -> Element<'_, Message> {

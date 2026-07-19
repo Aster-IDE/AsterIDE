@@ -30,14 +30,14 @@ impl Home {
         match message {
             Message::OpenFolder => {
                 if let Some(dir) = FileDialog::new().pick_folder() {
-                    println!("{dir:#?}")
-                };
+                    println!("{dir:?}");
+                }
 
                 Task::none()
             }
             Message::OpenFile => {
                 if let Some(file) = FileDialog::new().pick_file() {
-                    println!("{file:#?}")
+                    println!("{file:?}");
                 };
 
                 Task::none()
