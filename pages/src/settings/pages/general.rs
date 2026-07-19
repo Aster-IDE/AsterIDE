@@ -31,7 +31,7 @@ impl General {
         match message {
             Message::ThemeSelected(key) => {
                 println!("selected theme: {key:?}");
-                self.selected_theme = key.clone();
+                self.selected_theme.clone_from(&key);
 
                 Task::none()
             }
