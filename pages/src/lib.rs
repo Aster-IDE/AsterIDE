@@ -1,3 +1,5 @@
+#![allow(clippy::unused_self)]
+
 use std::sync::RwLock;
 
 pub mod home;

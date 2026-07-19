@@ -1,3 +1,5 @@
+#![allow(clippy::unused_self)]
+
 mod app_icon;
 mod sidebar;
 use std::path::PathBuf;
