@@ -54,7 +54,7 @@ impl BottomArea {
         container(
             row![
                 bar_text(
-                    format!("AsterIDE v{}", env!("CARGO_PKG_VERSION")).into(),
+                    format!("AsterIDE v{}", env!("CARGO_PKG_VERSION")),
                     TextType::Attention
                 ),
                 container(Space::new().height(Length::Fill).width(1)).style(|theme: &Theme| {
@@ -108,9 +108,9 @@ pub fn bar_text(display: String, text_type: TextType) -> Element<'static, Messag
 
             text::Style {
                 color: Some(match text_type {
-                    TextType::Attention => palette.primary.strong.color.into(),
-                    TextType::Readable => palette.secondary.strong.color.into(),
-                    TextType::Muted => palette.secondary.weak.color.into(),
+                    TextType::Attention => palette.primary.strong.color,
+                    TextType::Readable => palette.secondary.strong.color,
+                    TextType::Muted => palette.secondary.weak.color,
                 }),
             }
         })

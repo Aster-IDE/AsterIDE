@@ -40,7 +40,7 @@ impl AsterIDE {
     fn scale_factor(&self) -> f32 {
         let config_reader = config::get();
 
-        config_reader.appearance.scale.clone()
+        config_reader.appearance.scale
     }
 
     fn subscription(&self) -> Subscription<Message> {
