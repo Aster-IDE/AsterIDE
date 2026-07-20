@@ -39,6 +39,9 @@ pub enum ThemeSetting {
     Nightfly,
     Oxocarbon,
     Ferra,
+    Yin,
+    Yang,
+    Matrix,
     CherryBlossomLight,
     CherryBlossomDark,
     RosePine,
@@ -71,6 +74,9 @@ impl ThemeSetting {
             ThemeSetting::Nightfly,
             ThemeSetting::Oxocarbon,
             ThemeSetting::Ferra,
+            ThemeSetting::Yin,
+            ThemeSetting::Yang,
+            ThemeSetting::Matrix,
             ThemeSetting::CherryBlossomLight,
             ThemeSetting::CherryBlossomDark,
             ThemeSetting::RosePine,
@@ -114,6 +120,9 @@ impl ThemeSetting {
             ThemeSetting::Nightfly => "nightfly",
             ThemeSetting::Oxocarbon => "oxocarbon",
             ThemeSetting::Ferra => "ferra",
+            ThemeSetting::Yin => "yin",
+            ThemeSetting::Yang => "yang",
+            ThemeSetting::Matrix => "matrix",
             ThemeSetting::CherryBlossomLight => "cherry_blossom_light",
             ThemeSetting::CherryBlossomDark => "cherry_blossom_dark",
             ThemeSetting::RosePine => "rose_pine",
@@ -146,6 +155,9 @@ impl ThemeSetting {
             ThemeSetting::Nightfly => "Nightfly",
             ThemeSetting::Oxocarbon => "Oxocarbon",
             ThemeSetting::Ferra => "Ferra",
+            ThemeSetting::Yin => "Yin",
+            ThemeSetting::Yang => "Yang",
+            ThemeSetting::Matrix => "Matrix",
             ThemeSetting::CherryBlossomLight => "Cherry Blossom Light",
             ThemeSetting::CherryBlossomDark => "Cherry Blossom Dark",
             ThemeSetting::RosePine => "Rosé Pine",
@@ -158,6 +170,34 @@ impl ThemeSetting {
         Self::all().iter().copied().find(|t| t.key() == key)
     }
 }
+
+const YIN: Palette = Palette {
+    background: Color::from_rgba8(18, 18, 18, 1.0),
+    text: Color::from_rgba8(240, 240, 240, 1.0),
+    primary: Color::from_rgba8(255, 255, 255, 1.0),
+    success: Color::from_rgba8(220, 220, 220, 1.0),
+    warning: Color::from_rgba8(180, 180, 180, 1.0),
+    danger: Color::from_rgba8(140, 140, 140, 1.0),
+};
+
+const YANG: Palette = Palette {
+    background: Color::from_rgba8(245, 245, 245, 1.0),
+    text: Color::from_rgba8(25, 25, 25, 1.0),
+    primary: Color::from_rgba8(0, 0, 0, 1.0),
+    success: Color::from_rgba8(50, 50, 50, 1.0),
+    warning: Color::from_rgba8(90, 90, 90, 1.0),
+    danger: Color::from_rgba8(130, 130, 130, 1.0),
+};
+
+const MATRIX: Palette = Palette {
+    background: Color::from_rgba8(4, 8, 4, 1.0),
+    text: Color::from_rgba8(178, 255, 178, 1.0),
+    primary: Color::from_rgba8(0, 255, 65, 1.0),
+    success: Color::from_rgba8(57, 255, 20, 1.0),
+    warning: Color::from_rgba8(255, 204, 0, 1.0),
+    danger: Color::from_rgba8(255, 64, 64, 1.0),
+};
+
 
 const CHERRY_BLOSSOM_LIGHT: Palette = Palette {
     background: Color::from_rgba8(245, 220, 230, 1.0),
@@ -243,6 +283,15 @@ impl From<ThemeSetting> for iced::Theme {
             }
             ThemeSetting::RosePineDawn => {
                 iced::Theme::custom(setting.display_name().to_string(), ROSE_PINE_DAWN)
+            }
+            ThemeSetting::Matrix => {
+                iced::Theme::custom(setting.display_name().to_string(), MATRIX)
+            }
+            ThemeSetting::Yin => {
+                iced::Theme::custom(setting.display_name().to_string(), YIN)
+            }
+            ThemeSetting::Yang => {
+                iced::Theme::custom(setting.display_name().to_string(), YANG)
             }
         }
     }
