@@ -216,7 +216,6 @@ const MATRIX: Palette = Palette {
     danger: Color::from_rgba8(255, 64, 64, 1.0),
 };
 
-
 const CHERRY_BLOSSOM_LIGHT: Palette = Palette {
     background: Color::from_rgba8(245, 220, 230, 1.0),
     text: Color::from_rgba8(80, 40, 60, 1.0),
@@ -302,15 +301,9 @@ impl From<ThemeSetting> for iced::Theme {
             ThemeSetting::RosePineDawn => {
                 iced::Theme::custom(setting.display_name().to_string(), ROSE_PINE_DAWN)
             }
-            ThemeSetting::Matrix => {
-                iced::Theme::custom(setting.display_name().to_string(), MATRIX)
-            }
-            ThemeSetting::Yin => {
-                iced::Theme::custom(setting.display_name().to_string(), YIN)
-            }
-            ThemeSetting::Yang => {
-                iced::Theme::custom(setting.display_name().to_string(), YANG)
-            }
+            ThemeSetting::Matrix => iced::Theme::custom(setting.display_name().to_string(), MATRIX),
+            ThemeSetting::Yin => iced::Theme::custom(setting.display_name().to_string(), YIN),
+            ThemeSetting::Yang => iced::Theme::custom(setting.display_name().to_string(), YANG),
         }
     }
 }

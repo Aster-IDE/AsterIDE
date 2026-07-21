@@ -30,10 +30,13 @@ static INSTANCE: RwLock<Option<Arc<spec::Config>>> = RwLock::new(None);
 fn config_home() -> PathBuf {
     if cfg!(target_family = "unix") {
         std::env::var_os("XDG_CONFIG_HOME")
-            .map_or_else(|| {
-                let home_var: PathBuf = env::var("HOME").unwrap().into();
-                home_var.join(".config")
-            }, PathBuf::from)
+            .map_or_else(
+                || {
+                    let home_var: PathBuf = env::var("HOME").unwrap().into();
+                    home_var.join(".config")
+                },
+                PathBuf::from,
+            )
             .join("asteride")
     } else {
         let home_var: PathBuf = env::var("LOCALAPPDATA").unwrap().into();
