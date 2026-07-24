@@ -31,7 +31,7 @@
 	- Display Line numbers
 	- Minimap
 	- Linting
-	- Discord RPC (https://github.com/playfairs/AsterIDE-Discord-Precense)
+	- Discord RPC (https://github.com/playfairs/AsterIDE-Discord-Presence)
 	- Corner Roundness
 	- Font Family
 	- Font Size
