@@ -1143,7 +1143,7 @@ impl Settings {
                         egui::RichText::new("GitHub")
                             .size(14.0)
                             .color(CherryBlossomTheme::accent_pink()),
-                        "https://github.com/Aster-IDE/AsterIDE",
+                        "https://github.com/playfairs/AsterIDE",
                     );
                     ui.add_space(8.0);
                     ui.hyperlink_to(
